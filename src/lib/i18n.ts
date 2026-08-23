@@ -109,6 +109,14 @@ const translations: Record<Language, Record<string, string>> = {
 
     // Misc
     "misc.binds": "binds",
+
+    // Live Preview
+    "live.start": "Start live preview",
+    "live.stop": "Stop live preview",
+    "live.running": "Running live",
+    "live.notAvailable": "Not available on this OS",
+    "live.packageNotFound": "Package not installed",
+    "live.runningAnother": "Another live preview is running",
   },
   es: {
     // TitleBar
@@ -218,6 +226,14 @@ const translations: Record<Language, Record<string, string>> = {
 
     // Misc
     "misc.binds": "binds",
+
+    // Live Preview
+    "live.start": "Iniciar preview en vivo",
+    "live.stop": "Detener preview en vivo",
+    "live.running": "Ejecutando en vivo",
+    "live.notAvailable": "No disponible en este SO",
+    "live.packageNotFound": "Paquete no instalado",
+    "live.runningAnother": "Otro preview en vivo esta corriendo",
   },
 };
 

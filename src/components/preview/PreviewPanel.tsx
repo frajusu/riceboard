@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Eye, EyeOff, Monitor, Layout, Zap } from "lucide-react";
+import { Eye, EyeOff, Monitor, Layout, Zap, Play, Square } from "lucide-react";
 import { useAppStore } from "@/stores/app-store";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
@@ -677,8 +677,8 @@ function DesktopSimulation({ hCfg, wCfg, kCfg, mCfg, rCfg, nCfg, bCfg }: {
       </div>
       <div className="flex items-center justify-between mt-2 px-1">
         <div className="flex items-center gap-1">
-          <button onClick={() => setShowRofi(!showRofi)} className="px-2 py-1 rounded text-[10px] transition-colors" style={{ backgroundColor: showRofi ? `${hCfg.activeBorderColor}22` : "#313244", color: showRofi ? hCfg.activeBorderColor : "#a6adc8", border: `1px solid ${showRofi ? hCfg.activeBorderColor + "44" : "transparent"}` }}>Rofi</button>
-          {hasMako && <button onClick={() => setShowMako(!showMako)} className="px-2 py-1 rounded text-[10px] transition-colors" style={{ backgroundColor: showMako ? "#f5c2e722" : "#313244", color: showMako ? "#f5c2e7" : "#a6adc8", border: `1px solid ${showMako ? "#f5c2e744" : "transparent"}` }}>Mako</button>}
+          <button onClick={() => setShowRofi(!showRofi)} className="px-2 py-1 rounded text-[10px] transition-colors" style={{ backgroundColor: showRofi ? "rgba(203,166,247,0.15)" : "#313244", color: showRofi ? "#cba6f7" : "#a6adc8", border: `1px solid ${showRofi ? "#cba6f766" : "transparent"}` }}>{t("preview.rofiToggle")}</button>
+          {hasMako && <button onClick={() => setShowMako(!showMako)} className="px-2 py-1 rounded text-[10px] transition-colors" style={{ backgroundColor: showMako ? "rgba(203,166,247,0.15)" : "#313244", color: showMako ? "#cba6f7" : "#a6adc8", border: `1px solid ${showMako ? "#cba6f766" : "transparent"}` }}>{t("preview.makoToggle")}</button>}
         </div>
         <div className="text-[10px] text-[#585b70]">{t("preview.clickFocus")}</div>
       </div>
@@ -748,7 +748,7 @@ export function PreviewPanel() {
   const togglePreview = useAppStore((s) => s.togglePreview);
   const previewWidth = useAppStore((s) => s.previewWidth);
   const setPreviewWidth = useAppStore((s) => s.setPreviewWidth);
-  const dimColor = "text-[#585b70]";
+  const dimColor = "text-muted-foreground";
   const activeTab = openTabs.find((t) => t.id === activeTabId);
   const pluginName = activeTab ? getPluginForFile(activeTab.name) : null;
   const content = activeTab?.content || "";
@@ -769,6 +769,10 @@ export function PreviewPanel() {
   const showDesktop = useAppStore((s) => s.showDesktop);
   const toggleShowDesktop = useAppStore((s) => s.toggleShowDesktop);
   const fontSizeOverrides = useAppStore((s) => s.fontSizeOverrides);
+  const isLinux = useAppStore((s) => s.isLinux);
+  const livePlugins = useAppStore((s) => s.livePlugins);
+  const startLivePreview = useAppStore((s) => s.startLivePreview);
+  const stopLivePreview = useAppStore((s) => s.stopLivePreview);
 
   const hCfg = useMemo(() => { try { return parseHyprland(hyprlandC); } catch { return parseHyprland(""); } }, [hyprlandC]);
   const wCfg = useMemo(() => { try { return parseWaybar(waybarC); } catch { return parseWaybar(""); } }, [waybarC]);
@@ -819,11 +823,11 @@ export function PreviewPanel() {
 
     if (pluginName === "hyprland") {
       const c = parseHyprland(content);
-      return <InfoCard title="hyprland.conf" color={c.activeBorderColor}>
-        <div className="flex justify-between"><span className={dimColor}>layout</span><span style={{ color: c.activeBorderColor }}>{c.layout}</span></div>
+      return <InfoCard title="hyprland.conf" color="#cba6f7">
+        <div className="flex justify-between"><span className={dimColor}>layout</span><span className="text-[#cdd6f4]">{c.layout}</span></div>
         {([["gaps_in", c.gapsIn+"px"], ["gaps_out", c.gapsOut+"px"], ["border_size", c.borderSize+"px"], ["rounding", c.rounding+"px"],
           ["blur", c.blurEnabled ? `on (${c.blurSize}/${c.blurPasses})` : "off"], ["animations", c.animationsEnabled ? "on" : "off"],
-        ] as [string, string][]).map(([k, v]) => <div key={k} className="flex justify-between"><span className={dimColor}>{k}</span><span style={{ color: c.activeBorderColor }}>{v}</span></div>)}
+        ] as [string, string][]).map(([k, v]) => <div key={k} className="flex justify-between"><span className={dimColor}>{k}</span><span className="text-[#cdd6f4]">{v}</span></div>)}
         <div className={`mt-1.5 text-[9px] ${dimColor}`}>{c.binds.length} binds | {c.execOnce.length} exec-once</div>
         {renderReloadButton("hyprland")}
       </InfoCard>;
@@ -871,6 +875,23 @@ export function PreviewPanel() {
           <Tooltip><TooltipTrigger asChild>
             <Button variant={showDesktop ? "secondary" : "ghost"} size="icon" className="h-6 w-6" onClick={toggleShowDesktop}><Monitor className="h-3 w-3" /></Button>
           </TooltipTrigger><TooltipContent>{t("preview.desktop")}</TooltipContent></Tooltip>
+          {pluginName && livePlugins[pluginName] ? (
+            <Tooltip><TooltipTrigger asChild>
+              <Button variant="ghost" size="icon" className="h-6 w-6" onClick={async () => {
+                if (pluginName) await stopLivePreview(pluginName);
+              }}><Square className="h-3 w-3" style={{ color: "#f38ba8" }} /></Button>
+            </TooltipTrigger><TooltipContent>{t("live.stop")}</TooltipContent></Tooltip>
+          ) : (
+            <Tooltip><TooltipTrigger asChild>
+              <Button variant="ghost" size="icon" className="h-6 w-6" onClick={async () => {
+                if (pluginName && isLinux) {
+                  await startLivePreview(pluginName);
+                }
+              }}>
+                <Play className="h-3 w-3" style={{ color: isLinux && pluginName ? "#a6e3a1" : "#585b70" }} />
+              </Button>
+            </TooltipTrigger><TooltipContent>{!isLinux ? t("live.notAvailable") : t("live.start")}</TooltipContent></Tooltip>
+          )}
           <Tooltip><TooltipTrigger asChild>
             <Button variant="ghost" size="icon" className="h-6 w-6" onClick={togglePreview}><EyeOff className="h-3 w-3" /></Button>
           </TooltipTrigger><TooltipContent>{t("preview.hide")}</TooltipContent></Tooltip>
@@ -881,12 +902,20 @@ export function PreviewPanel() {
           {showDesktop ? (
             <motion.div key="desktop" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.15 }}>
               <div className="flex items-center gap-1.5 mb-2 text-[10px] font-medium text-muted-foreground"><Monitor className="h-3 w-3" />{t("preview.hyprland.title")}</div>
-              {hasDesktop ? <DesktopSimulation hCfg={hCfg} wCfg={wCfg} kCfg={kCfg} mCfg={mCfg} rCfg={rCfg} nCfg={nCfg} bCfg={bCfg} /> : <div className="text-[9px] text-muted-foreground text-center py-8">Open hyprland.conf to see the simulation</div>}
+              {livePlugins["hyprland"] ? (
+                <div className="rounded-xl overflow-hidden border border-green-500/50 font-mono relative bg-[#1e1e2e] flex items-center justify-center" style={{ height: 400 }}>
+                  <div className="text-green-400 text-xs flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />{t("live.running")}: hyprland</div>
+                </div>
+              ) : hasDesktop ? <DesktopSimulation hCfg={hCfg} wCfg={wCfg} kCfg={kCfg} mCfg={mCfg} rCfg={rCfg} nCfg={nCfg} bCfg={bCfg} /> : <div className="text-[9px] text-muted-foreground text-center py-8">Open hyprland.conf to see the simulation</div>}
             </motion.div>
           ) : pluginName && content ? (
             <motion.div key={pluginName} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.15 }}>
               <div className="flex items-center gap-1.5 mb-2 text-[10px] font-medium text-muted-foreground"><Zap className="h-3 w-3" />{activeTab?.name}</div>
-              {renderPluginInfo()}
+              {livePlugins[pluginName] ? (
+                <div className="rounded-xl overflow-hidden border border-green-500/50 font-mono relative bg-[#1e1e2e] flex items-center justify-center" style={{ height: 400 }}>
+                  <div className="text-green-400 text-xs flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />{t("live.running")}: {pluginName}</div>
+                </div>
+              ) : renderPluginInfo()}
             </motion.div>
           ) : (
             <motion.div key="empty" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col items-center justify-center py-8 text-muted-foreground">

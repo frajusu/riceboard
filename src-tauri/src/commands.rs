@@ -2,6 +2,18 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fs;
 use std::path::PathBuf;
+use std::process::{Command, Stdio};
+use std::sync::Mutex;
+
+struct LiveProcess {
+    child: std::process::Child,
+    plugin: String,
+    screenshot_path: Option<String>,
+}
+
+lazy_static::lazy_static! {
+    static ref LIVE_PROCESS: Mutex<Option<LiveProcess>> = Mutex::new(None);
+}
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct FileNode {
@@ -476,4 +488,300 @@ pub fn reload_service(plugin: String) -> Result<String, String> {
         .output()
         .map_err(|e| e.to_string())?;
     Ok(format!("Reloaded {}", plugin))
+}
+
+fn get_config_dir(plugin: &str, vault_path: &str) -> Option<PathBuf> {
+    let vault = PathBuf::from(vault_path);
+    let map: HashMap<&str, Vec<&str>> = HashMap::from([
+        ("hyprland", vec!["hypr"]),
+        ("waybar", vec!["waybar"]),
+        ("kitty", vec!["kitty"]),
+        ("alacritty", vec!["alacritty"]),
+        ("ghostty", vec!["ghostty"]),
+        ("rofi", vec!["rofi"]),
+        ("wofi", vec!["wofi"]),
+        ("neovim", vec!["nvim"]),
+        ("nvim", vec!["nvim"]),
+        ("mako", vec!["mako"]),
+        ("dunst", vec!["dunst"]),
+        ("tmux", vec!["tmux"]),
+        ("btop", vec!["btop"]),
+        ("eww", vec!["eww"]),
+        ("cava", vec!["cava"]),
+        ("foot", vec!["foot"]),
+        ("fuzzel", vec!["fuzzel"]),
+        ("swaync", vec!["swaync"]),
+        ("yazi", vec!["yazi"]),
+        ("wlogout", vec!["wlogout"]),
+        ("lazygit", vec!["lazygit"]),
+        ("bat", vec!["bat"]),
+        ("wallust", vec!["wallust"]),
+    ]);
+    if let Some(dirs) = map.get(plugin) {
+        for dir in dirs {
+            let p = vault.join(dir);
+            if p.exists() {
+                return Some(p);
+            }
+        }
+    }
+    None
+}
+
+#[tauri::command]
+pub fn check_package(name: String) -> bool {
+    if !cfg!(target_os = "linux") {
+        return false;
+    }
+    Command::new("which")
+        .arg(&name)
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
+        .status()
+        .map(|s| s.success())
+        .unwrap_or(false)
+}
+
+#[tauri::command]
+pub fn is_package_available(name: String) -> bool {
+    check_package(name)
+}
+
+#[tauri::command]
+pub fn start_live_preview(plugin: String, vault_path: String) -> Result<String, String> {
+    if !cfg!(target_os = "linux") {
+        return Err("Live preview only available on Linux".to_string());
+    }
+
+    let mut proc = LIVE_PROCESS.lock().map_err(|e| e.to_string())?;
+    if proc.is_some() {
+        return Err("A live preview is already running".to_string());
+    }
+
+    let vault = PathBuf::from(&vault_path);
+
+    let screenshot_dir = vault.join(".riceboard").join("live");
+    fs::create_dir_all(&screenshot_dir).map_err(|e| e.to_string())?;
+
+    let child = match plugin.as_str() {
+        "hyprland" => {
+            let conf = vault.join("hypr").join("hyprland.conf");
+            if !conf.exists() {
+                return Err("hyprland.conf not found in vault".to_string());
+            }
+            Command::new("hyprctl")
+                .args(["dispatch", "exec", &format!("--  cat {}", conf.to_string_lossy())])
+                .stdout(Stdio::null())
+                .stderr(Stdio::null())
+                .spawn()
+                .map_err(|e| format!("Failed to start hyprland: {}", e))?
+        }
+        "waybar" => {
+            let config_dir = get_config_dir("waybar", &vault_path)
+                .ok_or("waybar config dir not found in vault")?;
+            Command::new("waybar")
+                .arg("-c")
+                .arg(config_dir.join("config").to_string_lossy().to_string())
+                .arg("-s")
+                .arg(config_dir.join("style.css").to_string_lossy().to_string())
+                .stdout(Stdio::null())
+                .stderr(Stdio::null())
+                .spawn()
+                .map_err(|e| format!("Failed to start waybar: {}", e))?
+        }
+        "kitty" => {
+            let config_dir = get_config_dir("kitty", &vault_path)
+                .ok_or("kitty config dir not found in vault")?;
+            let conf = config_dir.join("kitty.conf");
+            if !conf.exists() {
+                return Err("kitty.conf not found".to_string());
+            }
+            Command::new("kitty")
+                .arg("--config")
+                .arg(conf.to_string_lossy().to_string())
+                .stdout(Stdio::null())
+                .stderr(Stdio::null())
+                .spawn()
+                .map_err(|e| format!("Failed to start kitty: {}", e))?
+        }
+        "mako" => {
+            let config_dir = get_config_dir("mako", &vault_path)
+                .ok_or("mako config dir not found in vault")?;
+            let conf = config_dir.join("config");
+            if !conf.exists() {
+                return Err("mako/config not found".to_string());
+            }
+            Command::new("mako")
+                .args(["--config", conf.to_string_lossy().to_string().as_str()])
+                .stdout(Stdio::null())
+                .stderr(Stdio::null())
+                .spawn()
+                .map_err(|e| format!("Failed to start mako: {}", e))?
+        }
+        "dunst" => {
+            let config_dir = get_config_dir("dunst", &vault_path)
+                .ok_or("dunst config dir not found in vault")?;
+            let conf = config_dir.join("dunstrc");
+            if !conf.exists() {
+                return Err("dunst/dunstrc not found".to_string());
+            }
+            Command::new("dunst")
+                .arg("-config")
+                .arg(conf.to_string_lossy().to_string())
+                .stdout(Stdio::null())
+                .stderr(Stdio::null())
+                .spawn()
+                .map_err(|e| format!("Failed to start dunst: {}", e))?
+        }
+        "tmux" => {
+            let config_dir = get_config_dir("tmux", &vault_path)
+                .ok_or("tmux config dir not found in vault")?;
+            let conf = config_dir.join("tmux.conf");
+            if !conf.exists() {
+                return Err("tmux/tmux.conf not found".to_string());
+            }
+            Command::new("tmux")
+                .args(["-f", conf.to_string_lossy().to_string().as_str()])
+                .stdout(Stdio::null())
+                .stderr(Stdio::null())
+                .spawn()
+                .map_err(|e| format!("Failed to start tmux: {}", e))?
+        }
+        "btop" => {
+            let config_dir = get_config_dir("btop", &vault_path)
+                .ok_or("btop config dir not found in vault")?;
+            Command::new("btop")
+                .arg("--config")
+                .arg(config_dir.join("btop.conf").to_string_lossy().to_string())
+                .stdout(Stdio::null())
+                .stderr(Stdio::null())
+                .spawn()
+                .map_err(|e| format!("Failed to start btop: {}", e))?
+        }
+        "cava" => {
+            let config_dir = get_config_dir("cava", &vault_path)
+                .ok_or("cava config dir not found in vault")?;
+            Command::new("cava")
+                .arg("-c")
+                .arg(config_dir.join("config").to_string_lossy().to_string())
+                .stdout(Stdio::null())
+                .stderr(Stdio::null())
+                .spawn()
+                .map_err(|e| format!("Failed to start cava: {}", e))?
+        }
+        "foot" => {
+            let config_dir = get_config_dir("foot", &vault_path)
+                .ok_or("foot config dir not found in vault")?;
+            Command::new("foot")
+                .arg("-c")
+                .arg(config_dir.join("foot.ini").to_string_lossy().to_string())
+                .stdout(Stdio::null())
+                .stderr(Stdio::null())
+                .spawn()
+                .map_err(|e| format!("Failed to start foot: {}", e))?
+        }
+        "rofi" => {
+            let config_dir = get_config_dir("rofi", &vault_path)
+                .ok_or("rofi config dir not found in vault")?;
+            Command::new("rofi")
+                .args(["-config", config_dir.join("config.rasi").to_string_lossy().to_string().as_str(), "-show", "drun"])
+                .stdout(Stdio::null())
+                .stderr(Stdio::null())
+                .spawn()
+                .map_err(|e| format!("Failed to start rofi: {}", e))?
+        }
+        "wofi" => {
+            let config_dir = get_config_dir("wofi", &vault_path)
+                .ok_or("wofi config dir not found in vault")?;
+            Command::new("wofi")
+                .args(["--config", config_dir.join("config").to_string_lossy().to_string().as_str(), "--show", "drun"])
+                .stdout(Stdio::null())
+                .stderr(Stdio::null())
+                .spawn()
+                .map_err(|e| format!("Failed to start wofi: {}", e))?
+        }
+        "swaync" => {
+            let config_dir = get_config_dir("swaync", &vault_path)
+                .ok_or("swaync config dir not found in vault")?;
+            Command::new("swaync")
+                .arg("-c")
+                .arg(config_dir.join("config.json").to_string_lossy().to_string())
+                .stdout(Stdio::null())
+                .stderr(Stdio::null())
+                .spawn()
+                .map_err(|e| format!("Failed to start swaync: {}", e))?
+        }
+        "neovim" | "nvim" => {
+            let config_dir = get_config_dir("nvim", &vault_path)
+                .ok_or("nvim config dir not found in vault")?;
+            let conf = config_dir.join("init.lua");
+            if !conf.exists() {
+                return Err("nvim/init.lua not found".to_string());
+            }
+            Command::new("nvim")
+                .args(["--cmd", &format!("set rtp+={}", config_dir.to_string_lossy())])
+                .stdout(Stdio::null())
+                .stderr(Stdio::null())
+                .spawn()
+                .map_err(|e| format!("Failed to start nvim: {}", e))?
+        }
+        "eww" => {
+            let config_dir = get_config_dir("eww", &vault_path)
+                .ok_or("eww config dir not found in vault")?;
+            Command::new("eww")
+                .args(["open", "main", "--config", config_dir.to_string_lossy().to_string().as_str()])
+                .stdout(Stdio::null())
+                .stderr(Stdio::null())
+                .spawn()
+                .map_err(|e| format!("Failed to start eww: {}", e))?
+        }
+        _ => {
+            return Err(format!("Live preview not supported for {}", plugin));
+        }
+    };
+
+    let pid = child.id();
+    *proc = Some(LiveProcess {
+        child,
+        plugin: plugin.clone(),
+        screenshot_path: None,
+    });
+
+    Ok(format!("Started {} (PID: {})", plugin, pid))
+}
+
+#[tauri::command]
+pub fn stop_live_preview(plugin: String) -> Result<String, String> {
+    let mut proc = LIVE_PROCESS.lock().map_err(|e| e.to_string())?;
+    if let Some(mut p) = proc.take() {
+        if p.plugin == plugin {
+            let _ = p.child.kill();
+            let _ = p.child.wait();
+            Ok(format!("Stopped {}", plugin))
+        } else {
+            *proc = Some(p);
+            Err(format!("No live preview running for {}", plugin))
+        }
+    } else {
+        Err("No live preview running".to_string())
+    }
+}
+
+#[tauri::command]
+pub fn get_live_screenshot(plugin: String) -> Option<String> {
+    let proc = LIVE_PROCESS.lock().ok()?;
+    if let Some(p) = proc.as_ref() {
+        if p.plugin == plugin {
+            return p.screenshot_path.as_ref().map(|p| p.to_string());
+        }
+    }
+    None
+}
+
+#[tauri::command]
+pub fn is_live_running(plugin: String) -> bool {
+    match LIVE_PROCESS.lock() {
+        Ok(proc) => proc.as_ref().map(|p| p.plugin == plugin).unwrap_or(false),
+        Err(_) => false,
+    }
 }

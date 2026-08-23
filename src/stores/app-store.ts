@@ -152,6 +152,12 @@ interface AppState {
   newPluginDialogOpen: boolean;
   setNewPluginDialogOpen: (open: boolean) => void;
 
+  livePlugins: Record<string, boolean>;
+  setLiveRunning: (plugin: string, running: boolean) => void;
+  checkPackage: (name: string) => Promise<boolean>;
+  startLivePreview: (plugin: string) => Promise<string>;
+  stopLivePreview: (plugin: string) => Promise<string>;
+
   restoreSession: () => Promise<void>;
 }
 
@@ -383,6 +389,40 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   newPluginDialogOpen: false,
   setNewPluginDialogOpen: (open) => set({ newPluginDialogOpen: open }),
+
+  livePlugins: {},
+  setLiveRunning: (plugin, running) =>
+    set((s) => ({ livePlugins: { ...s.livePlugins, [plugin]: running } })),
+  checkPackage: async (name: string) => {
+    try {
+      return await invoke<boolean>("check_package", { name });
+    } catch {
+      return false;
+    }
+  },
+  startLivePreview: async (plugin: string) => {
+    const s = get();
+    if (!s.activeVaultPath) return "No vault open";
+    try {
+      const result = await invoke<string>("start_live_preview", {
+        plugin,
+        vaultPath: s.activeVaultPath,
+      });
+      set((st) => ({ livePlugins: { ...st.livePlugins, [plugin]: true } }));
+      return result;
+    } catch (e) {
+      return String(e);
+    }
+  },
+  stopLivePreview: async (plugin: string) => {
+    try {
+      const result = await invoke<string>("stop_live_preview", { plugin });
+      set((st) => ({ livePlugins: { ...st.livePlugins, [plugin]: false } }));
+      return result;
+    } catch (e) {
+      return String(e);
+    }
+  },
 
   restoreSession: async () => {
     const vault = loadVault();
