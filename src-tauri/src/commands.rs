@@ -220,6 +220,15 @@ fn default_configs() -> HashMap<&'static str, &'static str> {
     m.insert("cava", "# Cava config\n\n# Input\nmethod = auto\nsource = auto\n\n# Framerate\nframerate = 60\nautosens = 1\nsensitivity = 100\n\n# Bars\nbars = 0\nbar_width = 20\nbar_spacing = 0\nbar_height = 320\n\n# Colors\ncolor = catppuccin_mocha\n\n[gradient]\n1 = #cba6f7\n2 = #f5c2e7\n3 = #89b4fa\n4 = #89dceb\n5 = #a6e3a1\n6 = #f9e2af\n7 = #f38ba8\n\n[smoothing]\nintegral = 0.01\nmonstercat = 1\nwaves = 0.0\n\n# Controls\ndata_format = binary\nbinary_data = 0\n\n# Spectrum\nshow = inactive\nstereo = combined\n\n# Shadows\nshadow_range = 0.7\nshadow_bits = 2\n\n# Blur\nblur = 0\nnoise = 0.01\n");
     m.insert("starship", "# Starship prompt config\nformat = \"\"\"\n[\\[\\[\\[fg:#cba6f7$brightness$](bg:#313244 fg:#45475a)\\u{e0b2}](bg:#313244)\\[\\[\\[fg:#313244 bg:#1e1e2e]\\u{e0b2}](fg:#313244 bg:#1e1e2e)\n[isaac@arch](fg:#cba6f7 bg:#1e1e2e) \\[\\[\\[fg:#1e1e2e bg:#313244]\\u{e0b2}](fg:#313244 bg:#1e1e2e)\\[\\[\\[fg:#cba6f7 bg:#313244] $directory](bg:#313244 fg:#cba6f7)\n[\\[\\[\\[fg:#313244 bg:#1e1e2e]\\u{e0b2}](fg:#1e1e2e bg:#1e1e2e)\\n$character\"\"\"\n\n[directory]\nstyle = \"fg:#cba6f7 bg:#313244\"\ntruncation_length = 4\ntruncation_symbol = \".../\"\n\n[directory.substitutions]\n\"Documents\" = \"󰈙 \"\n\"Downloads\" = \" \"\n\"Music\" = \"󰝚 \"\n\"Pictures\" = \" \"\n\"Developer\" = \" \"\n\n[character]\nsuccess_symbol = \"[❯](fg:#a6e3a1)\"\nerror_symbol = \"[❯](fg:#f38ba8)\"\n\n[git_branch]\nstyle = \"fg:#f9e2af\"\nsymbol = \" \"\n\n[git_status]\nstyle = \"fg:#f38ba8\"\n\n[nodejs]\nsymbol = \" \"\nstyle = \"fg:#a6e3a1\"\n\n[rust]\nsymbol = \"🦀 \"\nstyle = \"fg:#f38ba8\"\n\n[python]\nsymbol = \" \"\nstyle = \"fg:#f9e2af\"\n\n[docker_context]\nsymbol = \" \"\nstyle = \"fg:#89b4fa\"\n\n[cmd_duration]\nmin_time = 2_000\nstyle = \"fg:#89dceb\"\nformat = \"took [$duration]($style) \"\n");
     m.insert("fastfetch", "{\n  \"$schema\": \"https://github.com/fastfetch-cli/fastfetch/raw/dev/doc/json_schema.json\",\n  \"logo\": {\n    \"type\": \"small\",\n    \"padding\": {\n      \"top\": 1,\n      \"left\": 2,\n      \"right\": 2\n    }\n  },\n  \"display\": {\n    \"color\": {\n      \"keys\": \"cyan\",\n      \"title\": \"cyan\"\n    },\n    \"separator\": \" -> \"\n  },\n  \"modules\": [\n    \"title\",\n    \"separator\",\n    \"os\",\n    \"host\",\n    \"kernel\",\n    \"uptime\",\n    \"packages\",\n    \"shell\",\n    \"terminal\",\n    \"de\",\n    \"wm\",\n    \"wmtheme\",\n    \"separator\",\n    \"cpu\",\n    \"gpu\",\n    \"memory\",\n    \"swap\",\n    \"disk\",\n    \"separator\",\n    \"localip\",\n    \"battery\",\n    \"player\",\n    \"locale\",\n    \"break\",\n    \"colors\"\n  ]\n}");
+    m.insert("foot", "[main]\nfont=JetBrainsMono Nerd Font:size=12\ndpi-aware=yes\npad=4x4\n\n[colors]\nbackground=1e1e2e\ncdd6f4=foreground\n0=45475a\n1=f38ba8\n2=a6e3a1\n3=f9e2af\n4=89b4fa\n5=f5c2e7\n6=89dceb\n7=bac2de\n8=585b70\n9=f38ba8\n10=a6e3a1\n11=f9e2af\n12=89b4fa\n13=f5c2e7\n14=89dceb\n15=a6adc8\n\n[cursor]\ncolor=1e1e2e cdd6f4\nstyle=block\nblink=yes\n\n[mouse]\nhide-when-typing=yes");
+    m.insert("fuzzel", "[main]\nfont=JetBrainsMono Nerd Font:size=14\nwidth=30\nlines=8\nicon-theme=Papirus-Dark\nprompt=>\nplaceholder=Search...\n\n[colors]\nbackground=1e1e2eee\ntext=cdd6f4\nmatch=cba6f7\nselection=45475a\nselection-text=cdd6f4\nborder=45475a\nplaceholder=6c7086\n");
+    m.insert("swaync", "{\n  \"$schema\": \"/etc/xdg/swaync/schema.json\",\n  \"positionX\": \"right\",\n  \"positionY\": \"top\",\n  \"layer\": \"overlay\",\n  \"control-center-layer\": \"top\",\n  \"layer-shell\": true,\n  \"cssPriority\": \"normal\",\n  \"control-center-width\": 500,\n  \"control-center-max-height\": 600,\n  \"control-center-margin-top\": 20,\n  \"control-center-margin-right\": 10,\n  \"notification-2fa-action\": true,\n  \"notification-inline-replies\": true,\n  \"notification-window-width\": 400,\n  \"keyboard-shortcuts\": true,\n  \"image-visibility\": \"default\",\n  \"transition-time\": 250,\n  \"fade-in-step-duration\": 250,\n  \"fade-out-step-duration\": 250,\n  \"fade-in\": 0.25,\n  \"fade-out\": 0.25,\n  \"timeout-low\": 5,\n  \"timeout-normal\": 10,\n  \"timeout-critical\": 0,\n  \"widgets\": [\n    \"title\",\n    \"dnd\",\n    \"notifications\"\n  ],\n  \"widget-config\": {\n    \"title\": {\n      \"text\": \"Notifications\"\n    },\n    \"dnd\": {\n      \"text\": \"Do Not Disturb\"\n    },\n    \"notifications\": {\n      \"scroll-direction\": \"down\",\n      \"clear-all-button\": true,\n      \"press-to-close\": true\n    }\n  }\n}");
+    m.insert("yazi", "[manager]\nshow-hidden = true\nsort-by = \"modified\"\nsort_reverse = true\nlinemode = \"size\"\n ratios = [1, 4, 3]\n\n[ opener ]\nopen = [\n  { run = 'xdg-open \"$@\"', block = true, desc = \"Open\" },\n  { run = 'xdg-open --dir \"$@\"', desc = \"Open Folder\" },\n]\nedit = [\n  { run = '$EDITOR \"$@\"', block = true, desc = \"Edit\" },\n]\npaste = [\n  { run = 'xclip -selection clipboard -o > \"$@\"', block = true, desc = \"Paste\" },\n]\n\n[plugin]\npreloaders = [\n  { name = \"*/\", multi = true, run = \"starship\" },\n]\n\n[ui]\ncursor = true\n\n[open]\nrules = [\n  { name = \"*/\", use = [\"open\", \"edit\"] },\n]\n\n[plugin.prepend_previewers]\n    name = \"*/\"\n    run = \"starship\"");
+    m.insert("wlogout", "login {\n    animation = \"sweep_left\";\n    submap = \"\"\n}\n\nlogout {\n    animation = \"sweep_left\";\n    submap = \"\"\n}\n\nshutdown {\n    animation = \"sweep_left\";\n    submap = \"\"\n}\n\nsuspend {\n    animation = \"sweep_left\";\n    submap = \"\"\n}\n\nlock {\n    animation = \"sweep_left\";\n    submap = \"\"\n}\n\nhibernate {\n    animation = \"sweep_left\";\n    submap = \"\"\n}");
+    m.insert("lazygit", "gui:\n  showFiles: true\n  showCommandLog: true\n  showIcons: true\ncolor:\n  defaultFgColor: \"#cdd6f4\"\n  mapping:\n    files:\n      filesColor: \"#cba6f7\"\n      unstagedChangesColor: \"#f38ba8\"\n      stagedChangesColor: \"#a6e3a1\"\n    branches:\n      branchesColor: \"#89b4fa\"\n      currentBranchColor: \"#f9e2af\"\n  theme:\n    activeBorderColor:\n      - \"#cba6f7\"\n      - \"bold\"\n    inactiveBorderColor:\n      - \"#a6adc8\"\n    searchingActiveBorderColor:\n      - \"#f9e2af\"\n      - \"bold\"\n    selectedLineBgColor:\n      - \"#313244\"\n    cherryPickedCommitBgColor:\n      - \"#45475a\"\n    cherryPickedCommitFgColor:\n      - \"#cba6f7\"\n    mergeConflictsColor:\n      - \"#89b4fa\"\n    mergeConflictsBgColor:\n      - \"#45475a\"\n    diffFilePathColor:\n      - \"#f9e2af\"\n    diffStatsColor:\n      - \"#a6e3a1\"\n    diffStatsAddColor:\n      - \"#a6e3a1\"\n    diffStatsDelColor:\n      - \"#f38ba8\"\n    commitGraphColor:\n      - \"#89b4fa\"\n    garbageCollectorIconColor:\n      - \"#6c7086\"\n    verifyingCommitColor:\n      - \"#f9e2af\"\n    branchNameFgColor:\n      - \"#cdd6f4\"");
+    m.insert("bat", "--theme=\"Catppuccin Mocha\"\n--style=numbers,changes,header\n--color-scheme=auto\n--italic-text=always\n--decorations=always\n--map-syntax=\"#.conf:INI\"\n--map-syntax=\"#.config:INI\"\n--map-syntax=\"*.conf:INI\"\n--map-syntax=\"*.config:INI\"\n--map-syntax=\"#.rasi:CSS\"\n--map-syntax=\"*.rasi:CSS\"\n--map-syntax=\"#.yuck:Lisp\"\n--map-syntax=\"#.scss:SCSS\"\n--map-syntax=\"#.toml:TOML\"\n--map-syntax=\"#.yml:YAML\"\n--map-syntax=\"#.yaml:YAML\"\n--map-syntax=\"#.json:JSON\"\n--map-syntax=\"#.jsonc:JSON\"\n--map-syntax=\"#.lua:Lua\"\n--map-syntax=\"#.vim:VimL\"\n--map-syntax=\"#.zsh:Bourne Again Shell (bash)\"\n--map-syntax=\"#.fish:Fish\"\n--map-syntax=\"#.bash:Bourne Again Shell (bash)\"\n--map-syntax=\"#.sh:Bourne Again Shell (bash)\"");
+    m.insert("eza", "# Eza (ls replacement) - no config file\n# Use via shell aliases:\nalias ls='eza --icons=auto --group-directories-first'\nalias ll='eza -la --icons=auto --group-directories-first --git'\nalias la='eza -a --icons=auto --group-directories-first'\nalias lt='eza -T --icons=auto --group-directories-first'\nalias l='eza --icons=auto --group-directories-first'");
+    m.insert("wallust", "# wallust - pywal-like color scheme generator\n[colors]\nwallpaper = \"\"\nbackend = \"fast\"\n\n[template]\ndirectory = \"~/.config/wallust/templates\"\nsuffix = \"_wall\"\n\n[color]\ntemplate_dir = \"~/.config/wallust/templates\"\napply = [\n  \"wal\",\n  \"htop\",\n  \"neovim\",\n  \"dunst\",\n  \"rofi\",\n  \"zathura\",\n  \"kitty\",\n  \"alacritty\",\n  \"feh\",\n  \"hydrogen\",\n  \"impala\",\n  \"lutra\",\n  \"pywal\",\n  \"template\",\n  \"wpgtk\",\n]\n\n[threshold]\ndelta = 10\n\n[palette]\nuse = [\n  \"special\",\n  \"colors\",\n  \"cursor\",\n  \"background\",\n  \"foreground\",\n  \"primary\",\n  \"file\"]");
     m
 }
 
@@ -249,6 +258,15 @@ pub fn check_vault_structure(vault_path: String) -> Result<HashMap<String, Vec<S
         ("eww", vec!["eww"]),
         ("cava", vec!["cava"]),
         ("fastfetch", vec!["fastfetch"]),
+        ("foot", vec!["foot"]),
+        ("fuzzel", vec!["fuzzel"]),
+        ("swaync", vec!["swaync"]),
+        ("yazi", vec!["yazi"]),
+        ("wlogout", vec!["wlogout"]),
+        ("lazygit", vec!["lazygit"]),
+        ("bat", vec!["bat"]),
+        ("eza", vec!["eza"]),
+        ("wallust", vec!["wallust"]),
     ]);
 
     let plugin_files: HashMap<&str, Vec<&str>> = HashMap::from([
@@ -275,6 +293,14 @@ pub fn check_vault_structure(vault_path: String) -> Result<HashMap<String, Vec<S
         ("cava", vec!["cava/config"]),
         ("starship", vec!["starship.toml"]),
         ("fastfetch", vec!["fastfetch/config.jsonc"]),
+        ("foot", vec!["foot/foot.ini"]),
+        ("fuzzel", vec!["fuzzel/fuzzel.ini"]),
+        ("swaync", vec!["swaync/config.json", "swaync/style.css"]),
+        ("yazi", vec!["yazi/yazi.toml"]),
+        ("wlogout", vec!["wlogout/layout"]),
+        ("lazygit", vec!["lazygit/config.yml"]),
+        ("bat", vec!["bat/config"]),
+        ("wallust", vec!["wallust/wallust.toml"]),
     ]);
 
     let mut result: HashMap<String, Vec<String>> = HashMap::new();
@@ -332,6 +358,15 @@ pub fn setup_vault(vault_path: String, plugins: Vec<String>) -> Result<Vec<Strin
         ("eww", vec!["eww"]),
         ("cava", vec!["cava"]),
         ("fastfetch", vec!["fastfetch"]),
+        ("foot", vec!["foot"]),
+        ("fuzzel", vec!["fuzzel"]),
+        ("swaync", vec!["swaync"]),
+        ("yazi", vec!["yazi"]),
+        ("wlogout", vec!["wlogout"]),
+        ("lazygit", vec!["lazygit"]),
+        ("bat", vec!["bat"]),
+        ("eza", vec!["eza"]),
+        ("wallust", vec!["wallust"]),
     ]);
 
     let plugin_files: HashMap<&str, Vec<(&str, &str)>> = HashMap::from([
@@ -358,6 +393,14 @@ pub fn setup_vault(vault_path: String, plugins: Vec<String>) -> Result<Vec<Strin
         ("cava", vec![("cava/config", "cava")]),
         ("starship", vec![("starship.toml", "starship")]),
         ("fastfetch", vec![("fastfetch/config.jsonc", "fastfetch")]),
+        ("foot", vec![("foot/foot.ini", "foot")]),
+        ("fuzzel", vec![("fuzzel/fuzzel.ini", "fuzzel")]),
+        ("swaync", vec![("swaync/config.json", "swaync")]),
+        ("yazi", vec![("yazi/yazi.toml", "yazi")]),
+        ("wlogout", vec![("wlogout/layout", "wlogout")]),
+        ("lazygit", vec![("lazygit/config.yml", "lazygit")]),
+        ("bat", vec![("bat/config", "bat")]),
+        ("wallust", vec![("wallust/wallust.toml", "wallust")]),
     ]);
 
     for plugin_name in &plugins {
@@ -388,4 +431,49 @@ pub fn setup_vault(vault_path: String, plugins: Vec<String>) -> Result<Vec<Strin
     }
 
     Ok(created)
+}
+
+#[tauri::command]
+pub fn is_linux() -> bool {
+    cfg!(target_os = "linux")
+}
+
+#[tauri::command]
+pub fn reload_service(plugin: String) -> Result<String, String> {
+    if !cfg!(target_os = "linux") {
+        return Err("Reload only available on Linux".to_string());
+    }
+    let cmd = match plugin.as_str() {
+        "hyprland" => "hyprctl reload",
+        "waybar" => "pkill -SIGUSR2 waybar; waybar",
+        "sway" => "swaymsg reload",
+        "mako" => "makoctl reload",
+        "dunst" => "pkill -SIGUSR1 dunst",
+        "swaync" => "swaync-client -R",
+        "eww" => "eww reload",
+        "swww" => "swww daemon",
+        "hyprpaper" => "hyprctl hyprpaper reload",
+        "cava" => "pkill -SIGUSR1 cava",
+        "wlogout" => "",
+        "swaylock" => "",
+        "fuzzel" => "",
+        "rofi" => "",
+        "wofi" => "",
+        "btop" => "",
+        "tmux" => "tmux source-file ~/.tmux.conf",
+        "kitty" => "killall -SIGUSR1 kitty",
+        "foot" => "",
+        "neovim" | "nvim" => "",
+        "starship" => "",
+        _ => "",
+    };
+    if cmd.is_empty() {
+        return Ok(format!("{} does not support live reload", plugin));
+    }
+    std::process::Command::new("sh")
+        .arg("-c")
+        .arg(cmd)
+        .output()
+        .map_err(|e| e.to_string())?;
+    Ok(format!("Reloaded {}", plugin))
 }

@@ -1,6 +1,6 @@
 [package]
 name = "riceboard"
-version = "0.3.0"
+version = "0.3.5"
 description = "A visual dotfile manager"
 authors = ["you"]
 edition = "2021"

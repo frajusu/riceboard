@@ -79,7 +79,9 @@ const defaultPlugins: Record<string, boolean> = {
   tmux: true, btop: true, dunst: false, alacritty: false,
   ghostty: false, fish: false, bash: false, wofi: false,
   hyprpaper: false, eww: false, hyprlock: false, cava: false,
-  starship: false,
+  starship: false, foot: false, fuzzel: false, swaync: false,
+  yazi: false, wlogout: false, lazygit: false, bat: false,
+  eza: false, wallust: false,
 };
 
 const savedLayout = loadLayout();
@@ -112,6 +114,9 @@ interface AppState {
   renameFile: (oldPath: string, newName: string) => Promise<string>;
   createFolder: (name: string) => Promise<string>;
   refreshFileTree: () => Promise<void>;
+  isLinux: boolean;
+  checkIsLinux: () => Promise<void>;
+  reloadService: (plugin: string) => Promise<string>;
 
   snapshots: Snapshot[];
   addSnapshot: (snapshot: Snapshot) => void;
@@ -295,6 +300,24 @@ export const useAppStore = create<AppState>((set, get) => ({
     }
   },
 
+  isLinux: false,
+  checkIsLinux: async () => {
+    try {
+      const result = await invoke<boolean>("is_linux");
+      set({ isLinux: result });
+    } catch {
+      set({ isLinux: false });
+    }
+  },
+  reloadService: async (plugin: string) => {
+    try {
+      const result = await invoke<string>("reload_service", { plugin });
+      return result;
+    } catch (e) {
+      return String(e);
+    }
+  },
+
   snapshots: [],
   addSnapshot: (snapshot) =>
     set((s) => ({ snapshots: [...s.snapshots, snapshot] })),
@@ -321,6 +344,7 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   restoreSession: async () => {
     const vault = loadVault();
+    get().checkIsLinux();
     if (vault) {
       try {
         set({ activeVaultPath: vault });

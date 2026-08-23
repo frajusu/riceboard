@@ -37,6 +37,8 @@ pub fn run() {
             commands::create_snapshot,
             commands::setup_vault,
             commands::check_vault_structure,
+            commands::is_linux,
+            commands::reload_service,
             minimize_window,
             toggle_maximize,
             close_window,

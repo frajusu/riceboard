@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Eye, EyeOff, Monitor, Layout, Zap } from "lucide-react";
+import { Eye, EyeOff, Monitor, Layout, Zap, RefreshCw } from "lucide-react";
 import { useAppStore } from "@/stores/app-store";
 import { useThemeStore } from "@/stores/theme-store";
 import { Button } from "@/components/ui/button";
@@ -34,6 +34,50 @@ function parseKeyValue(content: string, sep: RegExp = /=/): Record<string, strin
     }
   }
   return kv;
+}
+
+function parseToml(content: string): Record<string, Record<string, string>> {
+  const sections: Record<string, Record<string, string>> = {};
+  let current = "";
+  sections[current] = {};
+  for (const line of content.split("\n")) {
+    const t = line.trim();
+    if (!t || t.startsWith("#")) continue;
+    const sectionMatch = t.match(/^\[([^\]]+)\]$/);
+    if (sectionMatch) {
+      current = sectionMatch[1].trim();
+      sections[current] = {};
+      continue;
+    }
+    const eqIdx = t.indexOf("=");
+    if (eqIdx > 0) {
+      const key = t.substring(0, eqIdx).trim();
+      const val = t.substring(eqIdx + 1).trim().replace(/^["']|["']$/g, "");
+      sections[current][key] = val;
+    }
+  }
+  return sections;
+}
+
+function parseIni(content: string): Record<string, Record<string, string>> {
+  const sections: Record<string, Record<string, string>> = {};
+  let current = "main";
+  sections[current] = {};
+  for (const line of content.split("\n")) {
+    const t = line.trim();
+    if (!t || t.startsWith("#") || t.startsWith(";")) continue;
+    const sectionMatch = t.match(/^\[([^\]]+)\]$/);
+    if (sectionMatch) {
+      current = sectionMatch[1].trim();
+      sections[current] = {};
+      continue;
+    }
+    const eqIdx = t.indexOf("=");
+    if (eqIdx > 0) {
+      sections[current][t.substring(0, eqIdx).trim()] = t.substring(eqIdx + 1).trim();
+    }
+  }
+  return sections;
 }
 
 // --- Hyprland ---
@@ -150,7 +194,6 @@ function parseGhostty(content: string) {
   const colorMap: Record<string, string> = {};
   for (const [k, v] of Object.entries(kv)) {
     if (k.startsWith("palette") || k.startsWith("color")) {
-      const num = k.replace(/\D/g, "");
       colorMap[k] = v.startsWith("#") ? v : "#" + v;
     }
   }
@@ -160,6 +203,133 @@ function parseGhostty(content: string) {
     windowPaddingX: parseInt(kv.window_padding_x || "0"),
     windowPaddingY: parseInt(kv.window_padding_y || "0"),
     colors: colorMap,
+  };
+}
+
+function parseFoot(content: string) {
+  const sections = parseIni(content);
+  const main = sections["main"] || sections[""] || {};
+  const colors = sections["colors"] || {};
+  const font = main.font || "monospace";
+  const bg = colors.background || "#1e1e2e";
+  const fg = colors.foreground || "#cdd6f4";
+  const palette = colors.palette || "";
+  return {
+    font, fontSize: parseFloat(font.match(/:size=(\d+)/)?.[1] || "12"),
+    background: parseColor(bg), foreground: parseColor(fg),
+    dpiAware: main.dpi_aware !== "no",
+    pad: main.pad || "8x8",
+    cursorBlink: main.cursor !== "block-no-blink",
+    boldIsBright: main.bold_is_bright === "yes",
+    palette: palette.split(",").map((s: string) => s.trim()).filter(Boolean),
+  };
+}
+
+function parseFuzzel(content: string) {
+  const kv = parseKeyValue(content);
+  const font = kv.font || "monospace";
+  const colors: Record<string, string> = {};
+  for (const [k, v] of Object.entries(kv)) {
+    if (k.includes("color")) colors[k] = v;
+  }
+  return {
+    font, fontSize: parseFloat(font.match(/:size=(\d+)/)?.[1] || "12"),
+    width: parseInt(kv.width || "30"), lines: parseInt(kv.lines || "8"),
+    prompt: kv.prompt || "> ", placeholder: kv.placeholder || "Search...",
+    colors,
+  };
+}
+
+function parseSwaync(content: string) {
+  try {
+    const cleaned = content.replace(/\/\/.*$/gm, "");
+    const j = JSON.parse(cleaned);
+    return {
+      width: j.controlCenter?.width || 350,
+      borderRadius: j.controlCenter?.borderRadius || 10,
+      headerFontSize: j.controlCenter?.headerFontSize || 14,
+      bodyFontSize: j.controlCenter?.bodyFontSize || 13,
+      timeout: j.timeout || 5000,
+      maxVisible: j.maxVisible || 10,
+      fadeIn: j.fadeIn !== false,
+      positionX: j.positionX || "right",
+    };
+  } catch {
+    return { width: 350, borderRadius: 10, headerFontSize: 14, bodyFontSize: 13, timeout: 5000, maxVisible: 10, fadeIn: true, positionX: "right" };
+  }
+}
+
+function parseYazi(content: string) {
+  const toml = parseToml(content);
+  const general = toml["manager"] || toml[""] || {};
+  return {
+    layout: general.layout || ["ratio", "2, 4, 4"],
+    sortBy: general.sort_by || "modified",
+    sortReverse: general.sort_reverse === "true",
+    showHidden: general.show_hidden === "true",
+    showSymlink: general.show_symlink === "true",
+    linemode: general.linemode || "size",
+    ratio: general.ratio || "2, 4, 4",
+  };
+}
+
+function parseWlogout(content: string) {
+  const lines = content.split("\n");
+  const buttons: string[] = [];
+  for (const line of lines) {
+    const t = line.trim();
+    if (t.includes("label") && !t.startsWith("//")) {
+      const m = t.match(/"([^"]+)"/);
+      if (m) buttons.push(m[1]);
+    }
+  }
+  return { buttons, layoutFile: "layout" };
+}
+
+function parseLazygit(content: string) {
+  try {
+    const cleaned = content.replace(/#.*$/gm, "");
+    const kv = parseKeyValue(cleaned);
+    return {
+      gui: kv.gui?.includes("true") !== false,
+      showIcons: kv.show_icons !== "false",
+      nerdFontsVersion: parseInt(kv.nerd_fonts_version || "3"),
+      theme: kv.theme || "dark-plain",
+    };
+  } catch {
+    return { gui: true, showIcons: true, nerdFontsVersion: 3, theme: "dark-plain" };
+  }
+}
+
+function parseBat(content: string) {
+  const kv = parseKeyValue(content);
+  return {
+    theme: (kv.theme || "catppuccin-mocha").replace(/["']/g, ""),
+    style: kv.style || "full",
+    numbers: kv.numbers !== "never",
+    decorations: kv.decorations || "full",
+    grid: kv.grid === "true",
+    italicText: kv["italic-text"] || "always",
+    paging: kv.paging || "auto",
+  };
+}
+
+function parseEza(content: string) {
+  const hasIcons = content.includes("--icons") || content.includes("icons=auto");
+  const hasGit = content.includes("--git") || content.includes("icons=auto");
+  const hasLong = content.includes("--long") || content.includes("-l");
+  return { hasIcons, hasGit, hasLong, alias: content.trim() || "eza" };
+}
+
+function parseWallust(content: string) {
+  const toml = parseToml(content);
+  const general = toml[""] || {};
+  return {
+    backend: general.backend || "fast_resize",
+    cache_dir: general.cache_dir || "$XDG_CACHE_HOME/wallust",
+    colorspace: general.colorspace || "rgb",
+    template_dir: general.template_dir || "",
+    threshold: parseInt(general.threshold || "10"),
   };
 }
 
@@ -415,10 +585,6 @@ function DesktopSimulation({ hCfg, wCfg, kCfg, mCfg, rCfg, nCfg, bCfg }: {
                     </div>
                   </div>
                   <div className="flex-1 flex flex-col overflow-hidden cursor-pointer" onClick={() => setFocusedWin(2)} style={{ border: `${hCfg.borderSize}px solid ${focusedWin === 2 ? hCfg.activeBorderColor : hCfg.inactiveBorderColor}`, borderRadius: hCfg.rounding, opacity: focusedWin === 2 ? hCfg.activeOpacity : hCfg.inactiveOpacity, backdropFilter: blurCSS, backgroundColor: kCfg.bgOpacity < 1 ? `${kCfg.background}ee` : kCfg.background }}>
-                    <div className="flex items-center px-2 py-0.5 text-[8px]" style={{ backgroundColor: "#181825", borderBottom: "1px solid #313244", fontFamily: kCfg.fontFamily }}>
-                      <div className="flex gap-1 mr-2"><div className="w-1.5 h-1.5 rounded-full bg-[#f38ba8]" /><div className="w-1.5 h-1.5 rounded-full bg-[#f9e2af]" /><div className="w-1.5 h-1.5 rounded-full bg-[#a6e3a1]" /></div>
-                      <span style={{ color: "#89dceb" }}>btop</span>
-                    </div>
                     <div className="flex-1 p-2 overflow-hidden" style={{ color: kCfg.foreground, fontSize: 7, fontFamily: kCfg.fontFamily, lineHeight: 1.6 }}>
                       <div className="flex justify-between"><span>CPU</span><span style={{ color: "#a6e3a1" }}>42%</span></div>
                       <div className="h-1 rounded overflow-hidden" style={{ backgroundColor: "#313244" }}><div className="h-full rounded" style={{ width: "42%", backgroundColor: "#89b4fa" }} /></div>
@@ -463,10 +629,6 @@ function DesktopSimulation({ hCfg, wCfg, kCfg, mCfg, rCfg, nCfg, bCfg }: {
                     </div>
                   </div>
                   <div className="flex-1 flex flex-col overflow-hidden cursor-pointer" onClick={() => setFocusedWin(2)} style={{ border: `${hCfg.borderSize}px solid ${focusedWin === 2 ? hCfg.activeBorderColor : hCfg.inactiveBorderColor}`, borderRadius: hCfg.rounding, opacity: focusedWin === 2 ? hCfg.activeOpacity : hCfg.inactiveOpacity, backdropFilter: blurCSS, backgroundColor: kCfg.bgOpacity < 1 ? `${kCfg.background}ee` : kCfg.background }}>
-                    <div className="flex items-center px-2 py-0.5 text-[8px]" style={{ backgroundColor: "#181825", borderBottom: "1px solid #313244", fontFamily: kCfg.fontFamily }}>
-                      <div className="flex gap-1 mr-2"><div className="w-1.5 h-1.5 rounded-full bg-[#f38ba8]" /><div className="w-1.5 h-1.5 rounded-full bg-[#f9e2af]" /><div className="w-1.5 h-1.5 rounded-full bg-[#a6e3a1]" /></div>
-                      <span style={{ color: "#89dceb" }}>btop</span>
-                    </div>
                     <div className="flex-1 p-2 overflow-hidden" style={{ color: kCfg.foreground, fontSize: 7, fontFamily: kCfg.fontFamily, lineHeight: 1.6 }}>
                       <div className="flex justify-between"><span>CPU</span><span style={{ color: "#a6e3a1" }}>42%</span></div>
                       <div className="h-1 rounded overflow-hidden" style={{ backgroundColor: "#313244" }}><div className="h-full rounded" style={{ width: "42%", backgroundColor: "#89b4fa" }} /></div>
@@ -547,6 +709,15 @@ const pluginFilePatterns: Record<string, string[]> = {
   cava: ["config"],
   starship: ["starship.toml"],
   fastfetch: ["config.jsonc"],
+  foot: ["foot.ini", "foot.conf"],
+  fuzzel: ["fuzzel.ini", "fuzzel.conf"],
+  swaync: ["config.json", "style.css"],
+  yazi: ["yazi.toml", "theme.toml", "keymap.toml"],
+  wlogout: ["layout", "style.css"],
+  lazygit: ["config.yml", "config.yaml"],
+  bat: ["config"],
+  eza: [],
+  wallust: ["wallust.toml"],
 };
 
 function getPluginForFile(name: string): string | null {
@@ -608,6 +779,24 @@ export function PreviewPanel() {
 
   const hasDesktop = hyprlandC.length > 0;
 
+  const pluginReloadCommands: Record<string, string> = {
+    hyprland: "hyprctl reload",
+    waybar: "killall waybar && waybar",
+    mako: "makoctl reload",
+    dunst: "dunstctl reload",
+    rofi: "",
+    kitty: "killall -SIGUSR1 kitty",
+    alacritty: "",
+    ghostty: "",
+    neovim: "", nvim: "",
+    tmux: "tmux source-file ~/.tmux.conf",
+    btop: "",
+    hyprpaper: "hyprctl reload",
+    hyprlock: "",
+    swaync: "swaync-client -R",
+    wallust: "wallust run <wallpaper>",
+  };
+
   if (!previewOpen) {
     return (
       <div className="w-8 flex flex-col items-center py-2 border-l">
@@ -618,40 +807,65 @@ export function PreviewPanel() {
     );
   }
 
+  const renderReloadButton = (plugin: string) => {
+    const cmd = pluginReloadCommands[plugin];
+    if (!cmd) return null;
+    const { isLinux, reloadService } = useAppStore.getState();
+    if (!isLinux) return null;
+    return (
+      <button
+        onClick={() => reloadService(plugin)}
+        className={`mt-1.5 flex items-center gap-1 px-1.5 py-0.5 rounded text-[8px] transition-colors ${isDark ? "bg-[#313244] hover:bg-[#45475a] text-[#cdd6f4]" : "bg-gray-200 hover:bg-gray-300 text-gray-700"}`}
+      >
+        <RefreshCw className="h-2.5 w-2.5" /> Reload
+      </button>
+    );
+  };
+
   const renderPluginInfo = () => {
     if (!pluginName || !content) return null;
 
     if (pluginName === "hyprland") {
       const c = parseHyprland(content);
       return <InfoCard title="hyprland.conf" color={c.activeBorderColor}>
-        <div className="flex justify-between"><span>layout</span><span style={{ color: c.activeBorderColor }}>{c.layout}</span></div>
+        <div className="flex justify-between"><span className={dimColor}>layout</span><span style={{ color: c.activeBorderColor }}>{c.layout}</span></div>
         {([["gaps_in", c.gapsIn+"px"], ["gaps_out", c.gapsOut+"px"], ["border_size", c.borderSize+"px"], ["rounding", c.rounding+"px"],
           ["blur", c.blurEnabled ? `on (${c.blurSize}/${c.blurPasses})` : "off"], ["animations", c.animationsEnabled ? "on" : "off"],
-        ] as [string, string][]).map(([k, v]) => <div key={k} className="flex justify-between"><span>{k}</span><span style={{ color: c.activeBorderColor }}>{v}</span></div>)}
+        ] as [string, string][]).map(([k, v]) => <div key={k} className="flex justify-between"><span className={dimColor}>{k}</span><span style={{ color: c.activeBorderColor }}>{v}</span></div>)}
         <div className={`mt-1.5 text-[9px] ${dimColor}`}>{c.binds.length} binds | {c.execOnce.length} exec-once</div>
+        {renderReloadButton("hyprland")}
       </InfoCard>;
     }
-    if (pluginName === "waybar") { const c = parseWaybar(content); return <InfoCard title="waybar/config" color="#a6e3a1"><div className="flex justify-between"><span>position</span><span>{c.position}</span></div><div className="flex justify-between"><span>height</span><span>{c.height}px</span></div><div>left: [{c.left.join(", ")}]</div><div>right: [{c.right.join(", ")}]</div></InfoCard>; }
-    if (pluginName === "kitty") { const c = parseKitty(content); return <InfoCard title="kitty.conf" color="#cba6f7">{([["font_size", c.fontSize+""], ["bg", c.background], ["fg", c.foreground], ["opacity", c.bgOpacity+""], ["padding", c.padding+"px"]] as [string,string][]).map(([k,v]) => <div key={k} className="flex justify-between"><span>{k}</span><span>{v}</span></div>)}</InfoCard>; }
-    if (pluginName === "alacritty") { const c = parseAlacritty(content); return <InfoCard title="alacritty.toml" color="#f38ba8">{([["font", c.fontFamily], ["size", c.fontSize+""], ["bg", c.background], ["opacity", c.opacity+""]] as [string,string][]).map(([k,v]) => <div key={k} className="flex justify-between"><span>{k}</span><span>{v}</span></div>)}</InfoCard>; }
-    if (pluginName === "ghostty") { const c = parseGhostty(content); return <InfoCard title="ghostty/config" color="#89dceb">{([["font", c.fontFamily], ["size", c.fontSize+""], ["bg", c.background], ["padding_x", c.windowPaddingX+"px"]] as [string,string][]).map(([k,v]) => <div key={k} className="flex justify-between"><span>{k}</span><span>{v}</span></div>)}</InfoCard>; }
-    if (pluginName === "rofi") { const c = parseRofi(content); return <InfoCard title="config.rasi" color="#fab387"><div>font: {c.font}</div><div>modi: {c.modi.join(", ")}</div><div>icons: {c.hasIcons ? "on" : "off"}</div><div>width: {c.width}px</div></InfoCard>; }
-    if (pluginName === "wofi") { const c = parseWofi(content); return <InfoCard title="wofi/config" color="#fab387"><div>width: {c.width}px</div><div>show: {c.show}</div><div>prompt: {c.prompt}</div><div>images: {c.allowImages ? "on" : "off"}</div></InfoCard>; }
+    if (pluginName === "waybar") { const c = parseWaybar(content); return <InfoCard title="waybar/config" color="#a6e3a1"><div className="flex justify-between"><span className={dimColor}>position</span><span>{c.position}</span></div><div className="flex justify-between"><span className={dimColor}>height</span><span>{c.height}px</span></div><div className={dimColor}>left: [{c.left.join(", ")}]</div><div className={dimColor}>right: [{c.right.join(", ")}]</div>{renderReloadButton("waybar")}</InfoCard>; }
+    if (pluginName === "kitty") { const c = parseKitty(content); return <InfoCard title="kitty.conf" color="#cba6f7">{([["font_size", c.fontSize+""], ["bg", c.background], ["fg", c.foreground], ["opacity", c.bgOpacity+""], ["padding", c.padding+"px"]] as [string,string][]).map(([k,v]) => <div key={k} className="flex justify-between"><span className={dimColor}>{k}</span><span>{v}</span></div>)}{renderReloadButton("kitty")}</InfoCard>; }
+    if (pluginName === "alacritty") { const c = parseAlacritty(content); return <InfoCard title="alacritty.toml" color="#f38ba8">{([["font", c.fontFamily], ["size", c.fontSize+""], ["bg", c.background], ["opacity", c.opacity+""]] as [string,string][]).map(([k,v]) => <div key={k} className="flex justify-between"><span className={dimColor}>{k}</span><span>{v}</span></div>)}</InfoCard>; }
+    if (pluginName === "ghostty") { const c = parseGhostty(content); return <InfoCard title="ghostty/config" color="#89dceb">{([["font", c.fontFamily], ["size", c.fontSize+""], ["bg", c.background], ["padding_x", c.windowPaddingX+"px"]] as [string,string][]).map(([k,v]) => <div key={k} className="flex justify-between"><span className={dimColor}>{k}</span><span>{v}</span></div>)}</InfoCard>; }
+    if (pluginName === "rofi") { const c = parseRofi(content); return <InfoCard title="config.rasi" color="#fab387"><div className={dimColor}>font: {c.font}</div><div className={dimColor}>modi: {c.modi.join(", ")}</div><div className={dimColor}>icons: {c.hasIcons ? "on" : "off"}</div><div className={dimColor}>width: {c.width}px</div></InfoCard>; }
+    if (pluginName === "wofi") { const c = parseWofi(content); return <InfoCard title="wofi/config" color="#fab387"><div className={dimColor}>width: {c.width}px</div><div className={dimColor}>show: {c.show}</div><div className={dimColor}>prompt: {c.prompt}</div><div className={dimColor}>images: {c.allowImages ? "on" : "off"}</div></InfoCard>; }
     if (pluginName === "neovim" || pluginName === "nvim") { const c = parseNvim(content); return <InfoCard title="init.lua" color="#f38ba8"><div className="flex flex-wrap gap-1 mb-1">{c.hasLazy && <Tag color="#cba6f7">lazy.nvim</Tag>}<Tag color="#f38ba8">{c.theme}</Tag>{c.hasTelescope && <Tag color="#89b4fa">telescope</Tag>}{c.hasTreesitter && <Tag color="#a6e3a1">treesitter</Tag>}</div><div className={`text-[9px] ${dimColor}`}>plugins={c.pluginCount}</div></InfoCard>; }
     if (pluginName === "zsh") { const c = parseZsh(content); return <InfoCard title=".zshrc" color="#f9e2af"><div className="flex flex-wrap gap-1 mb-1"><Tag color="#f9e2af">{c.theme}</Tag>{c.hasP10k && <Tag color="#cba6f7">p10k</Tag>}</div><div className={`text-[9px] ${dimColor}`}>plugins=[{c.plugins.join(", ")}]</div></InfoCard>; }
     if (pluginName === "fish") { const c = parseFish(content); return <InfoCard title="config.fish" color="#a6e3a1"><div className="flex flex-wrap gap-1 mb-1"><Tag color="#a6e3a1">{c.theme}</Tag>{c.hasFisher && <Tag color="#89b4fa">fisher</Tag>}{c.hasZoxide && <Tag color="#cba6f7">zoxide</Tag>}</div><div className={`text-[9px] ${dimColor}`}>plugins: {c.plugins.join(", ") || "none"}</div></InfoCard>; }
-    if (pluginName === "bash") { const c = parseBash(content); return <InfoCard title=".bashrc" color="#a6e3a1"><div>aliases: {c.aliasCount}</div><div className="flex flex-wrap gap-1 mt-1">{c.hasNvm && <Tag color="#a6e3a1">nvm</Tag>}{c.hasConda && <Tag color="#cba6f7">conda</Tag>}{c.hasPnpm && <Tag color="#f9e2af">pnpm</Tag>}{c.hasBashCompletion && <Tag color="#89b4fa">completion</Tag>}</div></InfoCard>; }
-    if (pluginName === "mako") { const c = parseMako(content); return <InfoCard title="mako/config" color="#f5c2e7"><div>width: {c.width}px</div><div>radius: {c.borderRadius}px</div><div>timeout: {c.timeout}ms</div></InfoCard>; }
-    if (pluginName === "dunst") { const c = parseDunst(content); return <InfoCard title="dunstrc" color="#f5c2e7"><div>width: {c.width}px</div><div>radius: {c.cornerRadius}px</div><div>padding: {c.padding}px</div><div>timeout: {c.timeout}s</div></InfoCard>; }
-    if (pluginName === "tmux") { const c = parseTmux(content); return <InfoCard title="tmux.conf" color="#a6adc8"><div className="flex flex-wrap gap-1 mb-1"><Tag color="#a6adc8">prefix={c.prefix}</Tag>{c.hasTPM && <Tag color="#89b4fa">tpm</Tag>}{c.hasVi && <Tag color="#a6e3a1">vi</Tag>}</div><div className={`text-[9px] ${dimColor}`}>binds={c.bindCount} mouse={c.hasMouse?"on":"off"}</div></InfoCard>; }
-    if (pluginName === "btop") { const c = parseBtop(content); return <InfoCard title="btop.conf" color="#89dceb"><div>theme: {c.theme}</div><div>update: {c.updateMs}ms</div></InfoCard>; }
+    if (pluginName === "bash") { const c = parseBash(content); return <InfoCard title=".bashrc" color="#a6e3a1"><div className={dimColor}>aliases: {c.aliasCount}</div><div className="flex flex-wrap gap-1 mt-1">{c.hasNvm && <Tag color="#a6e3a1">nvm</Tag>}{c.hasConda && <Tag color="#cba6f7">conda</Tag>}{c.hasPnpm && <Tag color="#f9e2af">pnpm</Tag>}{c.hasBashCompletion && <Tag color="#89b4fa">completion</Tag>}</div></InfoCard>; }
+    if (pluginName === "mako") { const c = parseMako(content); return <InfoCard title="mako/config" color="#f5c2e7"><div className={dimColor}>width: {c.width}px</div><div className={dimColor}>radius: {c.borderRadius}px</div><div className={dimColor}>timeout: {c.timeout}ms</div>{renderReloadButton("mako")}</InfoCard>; }
+    if (pluginName === "dunst") { const c = parseDunst(content); return <InfoCard title="dunstrc" color="#f5c2e7"><div className={dimColor}>width: {c.width}px</div><div className={dimColor}>radius: {c.cornerRadius}px</div><div className={dimColor}>padding: {c.padding}px</div><div className={dimColor}>timeout: {c.timeout}s</div>{renderReloadButton("dunst")}</InfoCard>; }
+    if (pluginName === "tmux") { const c = parseTmux(content); return <InfoCard title="tmux.conf" color="#a6adc8"><div className="flex flex-wrap gap-1 mb-1"><Tag color="#a6adc8">prefix={c.prefix}</Tag>{c.hasTPM && <Tag color="#89b4fa">tpm</Tag>}{c.hasVi && <Tag color="#a6e3a1">vi</Tag>}</div><div className={`text-[9px] ${dimColor}`}>binds={c.bindCount} mouse={c.hasMouse?"on":"off"}</div>{renderReloadButton("tmux")}</InfoCard>; }
+    if (pluginName === "btop") { const c = parseBtop(content); return <InfoCard title="btop.conf" color="#89dceb"><div className={dimColor}>theme: {c.theme}</div><div className={dimColor}>update: {c.updateMs}ms</div></InfoCard>; }
     if (pluginName === "swww") return <InfoCard title="swww-daemon" color="#89dceb"><div className={`text-[9px] ${dimColor}`}>Runtime only: swww img &lt;path&gt; --transition-type fade</div></InfoCard>;
-    if (pluginName === "hyprpaper") { const c = parseHyprpaper(content); return <InfoCard title="hyprpaper.conf" color="#cba6f7"><div>wallpaper: {c.wallpaper || "not set"}</div><div>preloaded: {c.preload.length}</div><div>splash: {c.splash ? "on" : "off"}</div></InfoCard>; }
-    if (pluginName === "hyprlock") { const c = parseHyprlock(content); return <InfoCard title="hyprlock.conf" color="#cba6f7"><div>bg: {c.bgColor}</div><div>font: {c.fontFamily} {c.fontSize}px</div><div>blur: {c.blurPasses} passes</div><div>clock: {c.showClock ? "on" : "off"}</div></InfoCard>; }
+    if (pluginName === "hyprpaper") { const c = parseHyprpaper(content); return <InfoCard title="hyprpaper.conf" color="#cba6f7"><div className={dimColor}>wallpaper: {c.wallpaper || "not set"}</div><div className={dimColor}>preloaded: {c.preload.length}</div><div className={dimColor}>splash: {c.splash ? "on" : "off"}</div></InfoCard>; }
+    if (pluginName === "hyprlock") { const c = parseHyprlock(content); return <InfoCard title="hyprlock.conf" color="#cba6f7"><div className={dimColor}>bg: {c.bgColor}</div><div className={dimColor}>font: {c.fontFamily} {c.fontSize}px</div><div className={dimColor}>blur: {c.blurPasses} passes</div><div className={dimColor}>clock: {c.showClock ? "on" : "off"}</div></InfoCard>; }
     if (pluginName === "eww") { const c = parseEww(content); return <InfoCard title="eww.yuck" color="#f9e2af"><div className="flex flex-wrap gap-1 mb-1">{c.widgets.map(w => <Tag key={w} color="#f9e2af">{w}</Tag>)}</div><div className={`text-[9px] ${dimColor}`}>widgets={c.widgetCount} vars={c.vars.length} buttons={c.buttons}</div></InfoCard>; }
-    if (pluginName === "cava") { const c = parseCava(content); return <InfoCard title="cava/config" color="#89dceb"><div>method: {c.method}</div><div>bars: {c.bars} (w:{c.barWidth} s:{c.barSpacing})</div><div>framerate: {c.framerate}fps</div><div>sensitivity: {c.sensitivity}</div></InfoCard>; }
-    if (pluginName === "starship") { const c = parseStarship(content); return <InfoCard title="starship.toml" color="#f9e2af"><div>modules: {c.modules}</div><div>prompt: {c.promptChar}</div><div>truncation: {c.directory}</div></InfoCard>; }
-    if (pluginName === "fastfetch") { const c = parseFastfetch(content); return <InfoCard title="config.jsonc" color="#89dceb"><div>logo: {c.logoType}</div><div>modules: {c.moduleOrder.length}</div>{c.moduleOrder.length > 0 && <div className={`text-[9px] ${dimColor}`}>[{c.moduleOrder.slice(0, 6).join(", ")}{c.moduleOrder.length > 6 ? "..." : ""}]</div>}</InfoCard>; }
+    if (pluginName === "cava") { const c = parseCava(content); return <InfoCard title="cava/config" color="#89dceb"><div className={dimColor}>method: {c.method}</div><div className={dimColor}>bars: {c.bars} (w:{c.barWidth} s:{c.barSpacing})</div><div className={dimColor}>framerate: {c.framerate}fps</div><div className={dimColor}>sensitivity: {c.sensitivity}</div></InfoCard>; }
+    if (pluginName === "starship") { const c = parseStarship(content); return <InfoCard title="starship.toml" color="#f9e2af"><div className={dimColor}>modules: {c.modules}</div><div className={dimColor}>prompt: {c.promptChar}</div><div className={dimColor}>truncation: {c.directory}</div></InfoCard>; }
+    if (pluginName === "fastfetch") { const c = parseFastfetch(content); return <InfoCard title="config.jsonc" color="#89dceb"><div className={dimColor}>logo: {c.logoType}</div><div className={dimColor}>modules: {c.moduleOrder.length}</div>{c.moduleOrder.length > 0 && <div className={`text-[9px] ${dimColor}`}>[{c.moduleOrder.slice(0, 6).join(", ")}{c.moduleOrder.length > 6 ? "..." : ""}]</div>}</InfoCard>; }
+    if (pluginName === "foot") { const c = parseFoot(content); return <InfoCard title="foot.ini" color="#a6adc8">{([["font", c.font], ["size", c.fontSize+""], ["bg", c.background], ["fg", c.foreground], ["pad", c.pad], ["bold_is_bright", c.boldIsBright ? "yes" : "no"]] as [string,string][]).map(([k,v]) => <div key={k} className="flex justify-between"><span className={dimColor}>{k}</span><span>{v}</span></div>)}{renderReloadButton("foot")}</InfoCard>; }
+    if (pluginName === "fuzzel") { const c = parseFuzzel(content); return <InfoCard title="fuzzel.ini" color="#f9e2af">{([["font", c.font], ["size", c.fontSize+""], ["width", c.width+""], ["lines", c.lines+""], ["prompt", c.prompt]] as [string,string][]).map(([k,v]) => <div key={k} className="flex justify-between"><span className={dimColor}>{k}</span><span>{v}</span></div>)}{renderReloadButton("fuzzel")}</InfoCard>; }
+    if (pluginName === "swaync") { const c = parseSwaync(content); return <InfoCard title="swaync/config.json" color="#f5c2e7">{([["width", c.width+"px"], ["radius", c.borderRadius+"px"], ["timeout", c.timeout+"ms"], ["max_visible", c.maxVisible+""], ["position", c.positionX]] as [string,string][]).map(([k,v]) => <div key={k} className="flex justify-between"><span className={dimColor}>{k}</span><span>{v}</span></div>)}{renderReloadButton("swaync")}</InfoCard>; }
+    if (pluginName === "yazi") { const c = parseYazi(content); return <InfoCard title="yazi.toml" color="#a6e3a1">{([["sort", c.sortBy], ["hidden", c.showHidden ? "on" : "off"], ["linemode", c.linemode], ["ratio", c.ratio]] as [string,string][]).map(([k,v]) => <div key={k} className="flex justify-between"><span className={dimColor}>{k}</span><span>{v}</span></div>)}</InfoCard>; }
+    if (pluginName === "wlogout") { const c = parseWlogout(content); return <InfoCard title="wlogout/layout" color="#f38ba8"><div className={dimColor}>buttons: {c.buttons.length}</div><div className="flex flex-wrap gap-1 mt-1">{c.buttons.map(b => <Tag key={b} color="#f38ba8">{b}</Tag>)}</div></InfoCard>; }
+    if (pluginName === "lazygit") { const c = parseLazygit(content); return <InfoCard title="config.yml" color="#89b4fa">{([["show_icons", c.showIcons ? "on" : "off"], ["nerd_fonts", c.nerdFontsVersion+""], ["theme", c.theme]] as [string,string][]).map(([k,v]) => <div key={k} className="flex justify-between"><span className={dimColor}>{k}</span><span>{v}</span></div>)}{renderReloadButton("lazygit")}</InfoCard>; }
+    if (pluginName === "bat") { const c = parseBat(content); return <InfoCard title="config" color="#f5c2e7">{([["theme", c.theme], ["style", c.style], ["numbers", c.numbers ? "on" : "off"], ["grid", c.grid ? "on" : "off"], ["paging", c.paging]] as [string,string][]).map(([k,v]) => <div key={k} className="flex justify-between"><span className={dimColor}>{k}</span><span>{v}</span></div>)}</InfoCard>; }
+    if (pluginName === "eza") { const c = parseEza(content); return <InfoCard title="eza alias" color="#a6e3a1">{([["icons", c.hasIcons ? "on" : "off"], ["git", c.hasGit ? "on" : "off"], ["long", c.hasLong ? "on" : "off"]] as [string,string][]).map(([k,v]) => <div key={k} className="flex justify-between"><span className={dimColor}>{k}</span><span>{v}</span></div>)}<div className={`text-[9px] ${dimColor}`}>alias: {c.alias}</div></InfoCard>; }
+    if (pluginName === "wallust") { const c = parseWallust(content); return <InfoCard title="wallust.toml" color="#cba6f7">{([["backend", c.backend], ["colorspace", c.colorspace], ["threshold", c.threshold+""], ["cache", c.cache_dir]] as [string,string][]).map(([k,v]) => <div key={k} className="flex justify-between"><span className={dimColor}>{k}</span><span>{v}</span></div>)}{renderReloadButton("wallust")}</InfoCard>; }
     return null;
   };
 
