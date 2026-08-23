@@ -27,7 +27,7 @@ interface CommandItem {
 export function CommandPalette() {
   const commandPaletteOpen = useAppStore((s) => s.commandPaletteOpen);
   const toggleCommandPalette = useAppStore((s) => s.toggleCommandPalette);
-  const { setTheme } = useThemeStore();
+  const setTheme = useThemeStore((s) => s.setTheme);
   const [query, setQuery] = useState("");
   const [selectedIndex, setSelectedIndex] = useState(0);
 

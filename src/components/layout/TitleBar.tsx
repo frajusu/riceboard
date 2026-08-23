@@ -22,7 +22,9 @@ import {
 import { invoke } from "@tauri-apps/api/core";
 
 export function TitleBar() {
-  const { theme, setTheme, resolvedTheme } = useThemeStore();
+  const theme = useThemeStore((s) => s.theme);
+  const setTheme = useThemeStore((s) => s.setTheme);
+  const resolvedTheme = useThemeStore((s) => s.resolvedTheme);
   const sidebarOpen = useAppStore((s) => s.sidebarOpen);
   const toggleSidebar = useAppStore((s) => s.toggleSidebar);
   const toggleCommandPalette = useAppStore((s) => s.toggleCommandPalette);

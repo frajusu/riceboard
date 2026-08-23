@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback, Component, type ReactNode } from "react";
+import React, { useEffect, useState, useCallback, useRef, Component, type ReactNode } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { TitleBar } from "@/components/layout/TitleBar";
@@ -221,8 +221,11 @@ function VaultSetupDialog() {
 
 export default function App() {
   const restoreSession = useAppStore((s) => s.restoreSession);
+  const didInit = useRef(false);
 
   useEffect(() => {
+    if (didInit.current) return;
+    didInit.current = true;
     initPlugins();
     restoreSession();
   }, []);

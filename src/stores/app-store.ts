@@ -153,11 +153,10 @@ export const useAppStore = create<AppState>((set, get) => ({
   },
   previewOpen: savedLayout.previewOpen ?? true,
   togglePreview: () => {
-    set((s) => {
-      const next = !s.previewOpen;
-      saveLayout(s.sidebarWidth, s.previewWidth, next);
-      return { previewOpen: next };
-    });
+    const s = get();
+    const next = !s.previewOpen;
+    set({ previewOpen: next });
+    saveLayout(s.sidebarWidth, s.previewWidth, next);
   },
 
   activeVaultPath: null,

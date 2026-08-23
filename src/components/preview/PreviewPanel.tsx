@@ -727,7 +727,7 @@ function getPluginForFile(name: string): string | null {
 }
 
 const InfoCard = ({ title, color, children }: { title: string; color: string; children: React.ReactNode }) => {
-  const { resolvedTheme } = useThemeStore();
+  const resolvedTheme = useThemeStore((s) => s.resolvedTheme);
   const isDark = resolvedTheme === "dark";
   return (
     <div className={`rounded-lg p-2 font-mono text-[10px] ${isDark ? "bg-[#1e1e2e]" : "bg-gray-100 border border-gray-200"}`}>
@@ -738,7 +738,7 @@ const InfoCard = ({ title, color, children }: { title: string; color: string; ch
 };
 
 const Tag = ({ color, children }: { color: string; children: React.ReactNode }) => {
-  const { resolvedTheme } = useThemeStore();
+  const resolvedTheme = useThemeStore((s) => s.resolvedTheme);
   const isDark = resolvedTheme === "dark";
   return (
     <span className={`px-1.5 py-0.5 rounded text-[8px] ${isDark ? "bg-[#313244]" : "bg-gray-200"}`} style={{ color }}>{children}</span>
@@ -752,7 +752,7 @@ export function PreviewPanel() {
   const togglePreview = useAppStore((s) => s.togglePreview);
   const previewWidth = useAppStore((s) => s.previewWidth);
   const setPreviewWidth = useAppStore((s) => s.setPreviewWidth);
-  const { resolvedTheme } = useThemeStore();
+  const resolvedTheme = useThemeStore((s) => s.resolvedTheme);
   const isDark = resolvedTheme === "dark";
   const dimColor = isDark ? "text-[#585b70]" : "text-gray-400";
   const activeTab = openTabs.find((t) => t.id === activeTabId);
