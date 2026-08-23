@@ -1,5 +1,4 @@
 import React, { useState, useRef, useCallback, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
 import { X, Save, Circle, Scissors, Copy, ClipboardPaste, Undo2, Redo2, CheckSquare } from "lucide-react";
 import { useAppStore } from "@/stores/app-store";
 import { Button } from "@/components/ui/button";
@@ -180,21 +179,6 @@ export function CodeEditor() {
     if (lineNumRef.current) lineNumRef.current.scrollTop = 0;
   }, [activeTabId]);
 
-  if (!activeTab) {
-    return (
-      <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground">
-        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="text-center">
-          <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-violet-500/20 to-fuchsia-500/20 flex items-center justify-center">
-            <span className="text-2xl font-bold bg-gradient-to-br from-violet-500 to-fuchsia-500 bg-clip-text text-transparent">R</span>
-          </div>
-          <h2 className="text-lg font-semibold mb-1">Riceboard</h2>
-          <p className="text-sm">Abri un archivo para comenzar a editar</p>
-          <p className="text-xs mt-2 text-muted-foreground/60">Ctrl+K para abrir la palette de comandos</p>
-        </motion.div>
-      </div>
-    );
-  }
-
   const handleContextMenu = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -213,6 +197,21 @@ export function CodeEditor() {
     showMenu(e, items);
   }, [showMenu]);
 
+  if (!activeTab) {
+    return (
+      <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground">
+        <div className="text-center">
+          <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-violet-500/20 to-fuchsia-500/20 flex items-center justify-center">
+            <span className="text-2xl font-bold bg-gradient-to-br from-violet-500 to-fuchsia-500 bg-clip-text text-transparent">R</span>
+          </div>
+          <h2 className="text-lg font-semibold mb-1">Riceboard</h2>
+          <p className="text-sm">Abri un archivo para comenzar a editar</p>
+          <p className="text-xs mt-2 text-muted-foreground/60">Ctrl+K para abrir la palette de comandos</p>
+        </div>
+      </div>
+    );
+  }
+
   const lines = activeTab.content.split("\n");
   const lineCount = lines.length;
   const highlighted = highlightSyntax(activeTab.content, activeTab.name);
@@ -222,19 +221,17 @@ export function CodeEditor() {
     <div className="flex-1 flex flex-col min-h-0">
       {/* Tab bar */}
       <div className="flex items-center border-b bg-card/50 overflow-x-auto shrink-0">
-        <AnimatePresence mode="popLayout">
-          {openTabs.map((tab) => (
-            <motion.div key={tab.id} layout initial={{ opacity: 0, width: 0 }} animate={{ opacity: 1, width: "auto" }} exit={{ opacity: 0, width: 0 }} transition={{ duration: 0.2 }}
-              className={`flex items-center gap-2 px-4 py-2.5 border-r cursor-pointer text-sm whitespace-nowrap group transition-colors ${tab.id === activeTabId ? "bg-background text-foreground" : "text-muted-foreground hover:bg-accent/50 hover:text-foreground"}`}
-              onClick={() => setActiveTab(tab.id)}>
-              {tab.modified ? <Circle className="h-2 w-2 fill-orange-400 text-orange-400 shrink-0" /> : <span className="w-2 h-2" />}
-              <span>{tab.name}</span>
-              <Button variant="ghost" size="icon" className="h-4 w-4 opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => { e.stopPropagation(); closeTab(tab.id); }}>
-                <X className="h-3 w-3" />
-              </Button>
-            </motion.div>
-          ))}
-        </AnimatePresence>
+        {openTabs.map((tab) => (
+          <div key={tab.id}
+            className={`flex items-center gap-2 px-4 py-2.5 border-r cursor-pointer text-sm whitespace-nowrap group transition-colors ${tab.id === activeTabId ? "bg-background text-foreground" : "text-muted-foreground hover:bg-accent/50 hover:text-foreground"}`}
+            onClick={() => setActiveTab(tab.id)}>
+            {tab.modified ? <Circle className="h-2 w-2 fill-orange-400 text-orange-400 shrink-0" /> : <span className="w-2 h-2" />}
+            <span>{tab.name}</span>
+            <Button variant="ghost" size="icon" className="h-4 w-4 opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => { e.stopPropagation(); closeTab(tab.id); }}>
+              <X className="h-3 w-3" />
+            </Button>
+          </div>
+        ))}
       </div>
 
       {/* Editor: single scrollable container */}

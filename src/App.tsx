@@ -12,9 +12,17 @@ import { Button } from "@/components/ui/button";
 import { invoke } from "@tauri-apps/api/core";
 import { Check, FolderOpen, X } from "lucide-react";
 
+function reportError(msg: string) {
+  try { localStorage.setItem("riceboard:last-error", msg); } catch {}
+}
+
 class ErrorBoundary extends Component<{ children: ReactNode }, { hasError: boolean; error: string }> {
   state = { hasError: false, error: "" };
-  static getDerivedStateFromError(err: Error) { return { hasError: true, error: err.message }; }
+  static getDerivedStateFromError(err: Error) {
+    const msg = `${err.message}\n\n${err.stack || ""}`;
+    reportError(`ErrorBoundary: ${msg}`);
+    return { hasError: true, error: err.message };
+  }
   render() {
     if (this.state.hasError) {
       return (
@@ -224,6 +232,14 @@ export default function App() {
   const didInit = useRef(false);
 
   useEffect(() => {
+    window.onerror = (msg, src, line, col, err) => {
+      const detail = `onerror: ${msg}\n${src}:${line}:${col}\n${err?.stack || ""}`;
+      reportError(detail);
+    };
+    window.onunhandledrejection = (e) => {
+      const detail = `unhandledrejection: ${e.reason}\n${e.reason?.stack || ""}`;
+      reportError(detail);
+    };
     if (didInit.current) return;
     didInit.current = true;
     initPlugins();
