@@ -28,6 +28,7 @@
     --titlebar-foreground: 240 5.9% 10%;
     --sidebar: 240 4.8% 97%;
     --sidebar-foreground: 240 5.9% 10%;
+    --caret: 240 10% 3.9%;
   }
 
   .dark {
@@ -54,6 +55,7 @@
     --titlebar-foreground: 0 0% 98%;
     --sidebar: 240 6% 8%;
     --sidebar-foreground: 0 0% 98%;
+    --caret: 0 0% 98%;
   }
 }
 

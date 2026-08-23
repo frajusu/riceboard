@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { invoke } from "@tauri-apps/api/core";
+import { getLanguage, setLanguage, type Language } from "@/lib/i18n";
 
 export interface FileNode {
   id: string;
@@ -144,6 +145,9 @@ interface AppState {
 
   settingsOpen: boolean;
   setSettingsOpen: (open: boolean) => void;
+
+  language: Language;
+  setLanguage: (lang: Language) => void;
 
   newPluginDialogOpen: boolean;
   setNewPluginDialogOpen: (open: boolean) => void;
@@ -370,6 +374,12 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   settingsOpen: false,
   setSettingsOpen: (open) => set({ settingsOpen: open }),
+
+  language: getLanguage(),
+  setLanguage: (lang) => {
+    setLanguage(lang);
+    set({ language: lang });
+  },
 
   newPluginDialogOpen: false,
   setNewPluginDialogOpen: (open) => set({ newPluginDialogOpen: open }),

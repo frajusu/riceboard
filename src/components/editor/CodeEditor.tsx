@@ -6,6 +6,7 @@ import {
   Tooltip, TooltipContent, TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { useContextMenu } from "@/components/ui/context-menu";
+import { t } from "@/lib/i18n";
 
 const editorFontFamily = "'JetBrainsMono Nerd Font', 'Fira Code', 'Cascadia Code', 'Consolas', monospace";
 const editorFontSize = 13;
@@ -185,14 +186,14 @@ export function CodeEditor() {
     const ta = textareaRef.current;
     const hasSelection = ta && ta.selectionStart !== ta.selectionEnd;
     const items = [
-      { label: "Deshacer", icon: <Undo2 className="h-4 w-4" />, shortcut: "Ctrl+Z", onClick: () => document.execCommand("undo") },
-      { label: "Rehacer", icon: <Redo2 className="h-4 w-4" />, shortcut: "Ctrl+Y", onClick: () => document.execCommand("redo") },
+      { label: t("editor.contextMenu.undo"), icon: <Undo2 className="h-4 w-4" />, shortcut: "Ctrl+Z", onClick: () => document.execCommand("undo") },
+      { label: t("editor.contextMenu.redo"), icon: <Redo2 className="h-4 w-4" />, shortcut: "Ctrl+Y", onClick: () => document.execCommand("redo") },
       { divider: true, label: "" },
-      { label: "Cortar", icon: <Scissors className="h-4 w-4" />, shortcut: "Ctrl+X", disabled: !hasSelection, onClick: () => { ta?.focus(); document.execCommand("cut"); } },
-      { label: "Copiar", icon: <Copy className="h-4 w-4" />, shortcut: "Ctrl+C", disabled: !hasSelection, onClick: () => { ta?.focus(); document.execCommand("copy"); } },
-      { label: "Pegar", icon: <ClipboardPaste className="h-4 w-4" />, shortcut: "Ctrl+V", onClick: () => { ta?.focus(); document.execCommand("paste"); } },
+      { label: t("editor.contextMenu.cut"), icon: <Scissors className="h-4 w-4" />, shortcut: "Ctrl+X", disabled: !hasSelection, onClick: () => { ta?.focus(); document.execCommand("cut"); } },
+      { label: t("editor.contextMenu.copy"), icon: <Copy className="h-4 w-4" />, shortcut: "Ctrl+C", disabled: !hasSelection, onClick: () => { ta?.focus(); document.execCommand("copy"); } },
+      { label: t("editor.contextMenu.paste"), icon: <ClipboardPaste className="h-4 w-4" />, shortcut: "Ctrl+V", onClick: () => { ta?.focus(); document.execCommand("paste"); } },
       { divider: true, label: "" },
-      { label: "Seleccionar todo", icon: <CheckSquare className="h-4 w-4" />, shortcut: "Ctrl+A", onClick: () => { ta?.focus(); ta?.select(); } },
+      { label: t("editor.contextMenu.selectAll"), icon: <CheckSquare className="h-4 w-4" />, shortcut: "Ctrl+A", onClick: () => { ta?.focus(); ta?.select(); } },
     ];
     showMenu(e, items);
   }, [showMenu]);
@@ -204,9 +205,9 @@ export function CodeEditor() {
           <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-violet-500/20 to-fuchsia-500/20 flex items-center justify-center">
             <span className="text-2xl font-bold bg-gradient-to-br from-violet-500 to-fuchsia-500 bg-clip-text text-transparent">R</span>
           </div>
-          <h2 className="text-lg font-semibold mb-1">Riceboard</h2>
-          <p className="text-sm">Abri un archivo para comenzar a editar</p>
-          <p className="text-xs mt-2 text-muted-foreground/60">Ctrl+K para abrir la palette de comandos</p>
+          <h2 className="text-lg font-semibold mb-1">{t("editor.empty.title")}</h2>
+          <p className="text-sm">{t("editor.empty.hint")}</p>
+          <p className="text-xs mt-2 text-muted-foreground/60">{t("editor.empty.shortcut")}</p>
         </div>
       </div>
     );
@@ -249,7 +250,7 @@ export function CodeEditor() {
             lineHeight: editorLineHeight,
             padding: `${editorPadding}px ${editorPadding}px ${editorPadding}px ${lineNumWidth + editorPadding}px`,
             color: "transparent",
-            caretColor: "#f5e0dc",
+            caretColor: "hsl(var(--caret))",
             backgroundColor: "transparent",
             whiteSpace: "pre",
             overflowWrap: "normal",

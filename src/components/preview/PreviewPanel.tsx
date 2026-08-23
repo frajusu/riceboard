@@ -4,6 +4,7 @@ import { Eye, EyeOff, Monitor, Layout, Zap } from "lucide-react";
 import { useAppStore } from "@/stores/app-store";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { t } from "@/lib/i18n";
 
 function parseColor(c: string): string {
   if (!c) return "#cba6f7";
@@ -520,7 +521,7 @@ function DesktopSimulation({ hCfg, wCfg, kCfg, mCfg, rCfg, nCfg, bCfg }: {
 
   return (
     <div className="relative select-none">
-      <div className="rounded-xl overflow-hidden border border-[#313244]/50 font-mono relative" style={{ height: 400 }}>
+      <div className="rounded-xl overflow-hidden border border-[#313244]/50 font-mono relative" style={{ height: 400, backgroundColor: "#1e1e2e" }}>
         <div className="absolute inset-0" style={{ background: "linear-gradient(135deg, #1e1e2e 0%, #181825 40%, #1e1e2e 70%, #31324422 100%)" }}>
           {hasSWWW && <div className="absolute inset-0" style={{ background: "radial-gradient(ellipse at 30% 70%, rgba(203,166,247,0.1) 0%, transparent 50%), radial-gradient(ellipse at 70% 30%, rgba(137,180,250,0.1) 0%, transparent 50%)" }} />}
         </div>
@@ -550,7 +551,7 @@ function DesktopSimulation({ hCfg, wCfg, kCfg, mCfg, rCfg, nCfg, bCfg }: {
                   <div className="flex-1 flex flex-col overflow-hidden cursor-pointer" onClick={() => setFocusedWin(0)} style={{ border: `${hCfg.borderSize}px solid ${focusedWin === 0 ? hCfg.activeBorderColor : hCfg.inactiveBorderColor}`, borderRadius: hCfg.rounding, opacity: focusedWin === 0 ? hCfg.activeOpacity : hCfg.inactiveOpacity, backdropFilter: blurCSS, backgroundColor: kCfg.background }}>
                     <div className="flex items-center px-2 py-0.5 text-[11px]" style={{ backgroundColor: "#181825", borderBottom: "1px solid #313244", fontFamily: kCfg.fontFamily }}>
                       <div className="flex gap-1.5 mr-2"><div className="w-2 h-2 rounded-full bg-[#f38ba8]" /><div className="w-2 h-2 rounded-full bg-[#f9e2af]" /><div className="w-2 h-2 rounded-full bg-[#a6e3a1]" /></div>
-                      <span style={{ color: hCfg.activeBorderColor }}>{hCfg.terminal}</span>
+                      <span className="text-[#cdd6f4]">{hCfg.terminal}</span>
                       <span className="ml-auto text-[#585b70]">~</span>
                     </div>
                     <div className="flex-1 p-2.5 overflow-hidden" style={{ color: kCfg.foreground, fontSize: 11, fontFamily: kCfg.fontFamily, lineHeight: 1.7 }}>
@@ -641,8 +642,8 @@ function DesktopSimulation({ hCfg, wCfg, kCfg, mCfg, rCfg, nCfg, bCfg }: {
           </div>
           {showRofi && (
             <div className="absolute inset-0 z-30 flex items-center justify-center" style={{ backgroundColor: "rgba(0,0,0,0.5)" }} onClick={() => setShowRofi(false)}>
-              <div className="w-72 overflow-hidden" style={{ border: `2px solid ${hCfg.activeBorderColor}`, borderRadius: hCfg.rounding, backgroundColor: kCfg.background, boxShadow: "0 20px 60px rgba(0,0,0,0.5)", fontFamily: kCfg.fontFamily }} onClick={e => e.stopPropagation()}>
-                <div className="px-3 py-2 text-[11px] flex items-center gap-2" style={{ backgroundColor: "#313244" }}>
+              <div className="w-72 overflow-hidden" style={{ border: `2px solid ${hCfg.activeBorderColor}`, borderRadius: hCfg.rounding, backgroundColor: "#1e1e2e", boxShadow: "0 20px 60px rgba(0,0,0,0.6)", fontFamily: kCfg.fontFamily }} onClick={e => e.stopPropagation()}>
+                <div className="px-3 py-2 text-[11px] flex items-center gap-2" style={{ backgroundColor: "#181825", borderBottom: `1px solid ${hCfg.activeBorderColor}44` }}>
                   <span style={{ color: hCfg.activeBorderColor }}>{">"}</span>
                   <span style={{ color: "#a6adc8" }}>Type to search...</span>
                 </div>
@@ -657,12 +658,12 @@ function DesktopSimulation({ hCfg, wCfg, kCfg, mCfg, rCfg, nCfg, bCfg }: {
           )}
           {hasMako && showMako && (
             <div className="absolute z-30" style={{ top: hasWaybar ? Math.min(wCfg.height, 36) + 8 : 8, right: 8 }}>
-              <div className="p-2.5 text-[11px]" style={{ maxWidth: mCfg.maxWidth * 80, borderRadius: mCfg.borderRadius, backgroundColor: mCfg.bgColor, border: `1px solid ${mCfg.borderColor}44`, color: mCfg.textColor, boxShadow: "0 4px 20px rgba(0,0,0,0.3)", fontFamily: kCfg.fontFamily }}>
+              <div className="p-2.5 text-[11px]" style={{ maxWidth: mCfg.maxWidth * 80, borderRadius: mCfg.borderRadius, backgroundColor: "#1e1e2e", border: `2px solid ${mCfg.borderColor}`, color: mCfg.textColor, boxShadow: "0 4px 20px rgba(0,0,0,0.4)", fontFamily: kCfg.fontFamily }}>
                 <div className="flex items-center justify-between mb-1">
                   <span style={{ color: mCfg.borderColor, fontWeight: "bold" }}>WiFi connected</span>
                   <button className="text-[10px] opacity-50 hover:opacity-100" onClick={() => setShowMako(false)}>x</button>
                 </div>
-                <div style={{ color: "#a6adc8" }}>Connected to {sys.wifi}</div>
+                <div style={{ color: "#cdd6f4" }}>Connected to {sys.wifi}</div>
               </div>
             </div>
           )}
@@ -679,7 +680,7 @@ function DesktopSimulation({ hCfg, wCfg, kCfg, mCfg, rCfg, nCfg, bCfg }: {
           <button onClick={() => setShowRofi(!showRofi)} className="px-2 py-1 rounded text-[10px] transition-colors" style={{ backgroundColor: showRofi ? `${hCfg.activeBorderColor}22` : "#313244", color: showRofi ? hCfg.activeBorderColor : "#a6adc8", border: `1px solid ${showRofi ? hCfg.activeBorderColor + "44" : "transparent"}` }}>Rofi</button>
           {hasMako && <button onClick={() => setShowMako(!showMako)} className="px-2 py-1 rounded text-[10px] transition-colors" style={{ backgroundColor: showMako ? "#f5c2e722" : "#313244", color: showMako ? "#f5c2e7" : "#a6adc8", border: `1px solid ${showMako ? "#f5c2e744" : "transparent"}` }}>Mako</button>}
         </div>
-        <div className="text-[10px] text-[#585b70]">Click windows to focus</div>
+        <div className="text-[10px] text-[#585b70]">{t("preview.clickFocus")}</div>
       </div>
     </div>
   );
@@ -865,21 +866,21 @@ export function PreviewPanel() {
       <div className="absolute left-0 top-0 bottom-0 w-1.5 cursor-col-resize hover:bg-primary/30 transition-colors z-10"
         onMouseDown={(e) => { e.preventDefault(); const sx = e.clientX; const sw = previewWidth; const mv = (ev: MouseEvent) => setPreviewWidth(Math.max(200, Math.min(600, sw + sx - ev.clientX))); const up = () => { window.removeEventListener("mousemove", mv); window.removeEventListener("mouseup", up); }; window.addEventListener("mousemove", mv); window.addEventListener("mouseup", up); }} />
       <div className="flex items-center justify-between px-2.5 py-1.5 border-b shrink-0">
-        <div className="flex items-center gap-1.5 text-xs font-medium"><Eye className="h-3.5 w-3.5 text-muted-foreground" />Preview</div>
+        <div className="flex items-center gap-1.5 text-xs font-medium"><Eye className="h-3.5 w-3.5 text-muted-foreground" />{t("preview.title")}</div>
         <div className="flex items-center gap-0.5">
           <Tooltip><TooltipTrigger asChild>
             <Button variant={showDesktop ? "secondary" : "ghost"} size="icon" className="h-6 w-6" onClick={toggleShowDesktop}><Monitor className="h-3 w-3" /></Button>
-          </TooltipTrigger><TooltipContent>Desktop simulation</TooltipContent></Tooltip>
+          </TooltipTrigger><TooltipContent>{t("preview.desktop")}</TooltipContent></Tooltip>
           <Tooltip><TooltipTrigger asChild>
             <Button variant="ghost" size="icon" className="h-6 w-6" onClick={togglePreview}><EyeOff className="h-3 w-3" /></Button>
-          </TooltipTrigger><TooltipContent>Ocultar</TooltipContent></Tooltip>
+          </TooltipTrigger><TooltipContent>{t("preview.hide")}</TooltipContent></Tooltip>
         </div>
       </div>
       <div className="flex-1 p-2.5 overflow-auto min-h-0">
         <AnimatePresence mode="wait">
           {showDesktop ? (
             <motion.div key="desktop" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.15 }}>
-              <div className="flex items-center gap-1.5 mb-2 text-[10px] font-medium text-muted-foreground"><Monitor className="h-3 w-3" />Desktop Simulation</div>
+              <div className="flex items-center gap-1.5 mb-2 text-[10px] font-medium text-muted-foreground"><Monitor className="h-3 w-3" />{t("preview.hyprland.title")}</div>
               {hasDesktop ? <DesktopSimulation hCfg={hCfg} wCfg={wCfg} kCfg={kCfg} mCfg={mCfg} rCfg={rCfg} nCfg={nCfg} bCfg={bCfg} /> : <div className="text-[9px] text-muted-foreground text-center py-8">Open hyprland.conf to see the simulation</div>}
             </motion.div>
           ) : pluginName && content ? (
@@ -889,7 +890,7 @@ export function PreviewPanel() {
             </motion.div>
           ) : (
             <motion.div key="empty" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col items-center justify-center py-8 text-muted-foreground">
-              <Layout className="h-8 w-8 mb-2 opacity-30" /><p className="text-xs text-center">Open a config file to preview</p><p className="text-[9px] mt-1 text-center opacity-60">Hyprland, Waybar, Kitty, Rofi, Neovim...</p>
+              <Layout className="h-8 w-8 mb-2 opacity-30" /><p className="text-xs text-center">{t("preview.openHint")}</p><p className="text-[9px] mt-1 text-center opacity-60">{t("preview.openSubhint")}</p>
             </motion.div>
           )}
         </AnimatePresence>

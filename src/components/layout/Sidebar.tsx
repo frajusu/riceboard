@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/tooltip";
 import { SnapshotTimeline } from "@/components/timeline/SnapshotTimeline";
 import { RelationGraph } from "@/components/graph/RelationGraph";
+import { t } from "@/lib/i18n";
 import { invoke } from "@tauri-apps/api/core";
 import { open } from "@tauri-apps/plugin-dialog";
 import { useContextMenu } from "@/components/ui/context-menu";
@@ -90,10 +91,10 @@ function FileTreeItem({ node, depth = 0, onContextMenu }: { node: FileNode; dept
 }
 
 const sidebarSections = [
-  { id: "files", label: "Archivos", icon: FileText },
-  { id: "plugins", label: "Plugins", icon: Sparkles },
-  { id: "snapshots", label: "Snapshots", icon: Clock },
-  { id: "graph", label: "Grafo", icon: GitBranch },
+  { id: "files", labelKey: "sidebar.files", icon: FileText },
+  { id: "plugins", labelKey: "sidebar.plugins", icon: Sparkles },
+  { id: "snapshots", labelKey: "sidebar.snapshots", icon: Clock },
+  { id: "graph", labelKey: "sidebar.graph", icon: GitBranch },
 ];
 
 export function Sidebar() {
@@ -201,7 +202,7 @@ export function Sidebar() {
                     <Icon className="h-3.5 w-3.5" />
                   </Button>
                 </TooltipTrigger>
-                <TooltipContent side="right">{section.label}</TooltipContent>
+                <TooltipContent side="right">{t(section.labelKey)}</TooltipContent>
               </Tooltip>
             );
           })}
@@ -212,7 +213,7 @@ export function Sidebar() {
                   <FolderSearch className="h-3.5 w-3.5" />
                 </Button>
               </TooltipTrigger>
-              <TooltipContent side="bottom">Abrir vault</TooltipContent>
+              <TooltipContent side="bottom">{t("sidebar.openVault")}</TooltipContent>
             </Tooltip>
             <Tooltip>
               <TooltipTrigger asChild>
@@ -220,7 +221,7 @@ export function Sidebar() {
                   <Plus className="h-3.5 w-3.5" />
                 </Button>
               </TooltipTrigger>
-              <TooltipContent side="bottom">Nuevo archivo</TooltipContent>
+              <TooltipContent side="bottom">{t("sidebar.newFile")}</TooltipContent>
             </Tooltip>
           </div>
         </div>
@@ -267,10 +268,10 @@ export function Sidebar() {
               ) : (
                 <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
                   <Folder className="h-10 w-10 mb-3 opacity-30" />
-                  <p className="text-sm">Sin vault abierto</p>
-                  <p className="text-xs mt-1">Selecciona una carpeta de dotfiles</p>
+                  <p className="text-sm">{t("sidebar.noVault")}</p>
+                  <p className="text-xs mt-1">{t("sidebar.noVaultHint")}</p>
                   <Button variant="outline" size="sm" className="mt-3 transition-all duration-150 hover:bg-accent active:scale-[0.98]" onClick={handleOpenVault}>
-                    <FolderSearch className="h-4 w-4 mr-2" />Abrir vault
+                    <FolderSearch className="h-4 w-4 mr-2" />{t("sidebar.openVault")}
                   </Button>
                 </div>
               )}

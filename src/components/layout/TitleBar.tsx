@@ -20,6 +20,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { invoke } from "@tauri-apps/api/core";
+import { t } from "@/lib/i18n";
 
 export function TitleBar() {
   const theme = useThemeStore((s) => s.theme);
@@ -28,6 +29,7 @@ export function TitleBar() {
   const sidebarOpen = useAppStore((s) => s.sidebarOpen);
   const toggleSidebar = useAppStore((s) => s.toggleSidebar);
   const toggleCommandPalette = useAppStore((s) => s.toggleCommandPalette);
+  const language = useAppStore((s) => s.language);
 
   const cycleTheme = () => {
     const themes: Array<"light" | "dark" | "system"> = [
@@ -66,7 +68,7 @@ export function TitleBar() {
             </Button>
           </TooltipTrigger>
           <TooltipContent side="bottom">
-            {sidebarOpen ? "Ocultar panel" : "Mostrar panel"}
+            {sidebarOpen ? t("titlebar.hidePanel") : t("titlebar.showPanel")}
           </TooltipContent>
         </Tooltip>
       </div>
@@ -92,7 +94,7 @@ export function TitleBar() {
               onClick={toggleCommandPalette}
             >
               <Search className="h-3.5 w-3.5" />
-              <span className="text-xs">Buscar</span>
+              <span className="text-xs">{t("titlebar.search")}</span>
               <kbd className="pointer-events-none ml-1 inline-flex h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium opacity-60">
                 <span className="text-xs">Ctrl</span>
                 <span className="text-xs">K</span>
@@ -117,7 +119,7 @@ export function TitleBar() {
             </Button>
           </TooltipTrigger>
           <TooltipContent side="bottom">
-            Tema: {theme === "system" ? "Sistema" : theme === "dark" ? "Oscuro" : "Claro"}
+            {t(`titlebar.theme.${theme}`)}
           </TooltipContent>
         </Tooltip>
 

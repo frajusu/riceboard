@@ -9,6 +9,7 @@ import { PreviewPanel } from "@/components/preview/PreviewPanel";
 import { initPlugins } from "@/lib/plugins";
 import { useAppStore, type FileNode } from "@/stores/app-store";
 import { useThemeStore } from "@/stores/theme-store";
+import { t } from "@/lib/i18n";
 import { Button } from "@/components/ui/button";
 import { invoke } from "@tauri-apps/api/core";
 import { Check, FolderOpen, X, Settings, FileText } from "lucide-react";
@@ -234,9 +235,18 @@ function SettingsDialog() {
   const theme = useThemeStore((s) => s.theme);
   const setTheme = useThemeStore((s) => s.setTheme);
   const fontSizeOverrides = useAppStore((s) => s.fontSizeOverrides);
+  const setFontSizeOverride = useAppStore((s) => s.setFontSizeOverride);
   const resetFontSizeOverrides = useAppStore((s) => s.resetFontSizeOverrides);
   const enabledPlugins = useAppStore((s) => s.enabledPlugins);
   const togglePlugin = useAppStore((s) => s.togglePlugin);
+  const language = useAppStore((s) => s.language);
+  const setLanguage = useAppStore((s) => s.setLanguage);
+
+  const simulationPlugins = [
+    "hyprland", "waybar", "kitty", "rofi", "neovim", "mako", "btop",
+    "alacritty", "ghostty", "dunst", "foot", "fuzzel", "wofi",
+    "swaync", "cava", "eww", "starship", "fastfetch", "yazi",
+  ];
 
   if (!settingsOpen) return null;
 
@@ -254,7 +264,7 @@ function SettingsDialog() {
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 10 }}
           transition={{ duration: 0.2 }}
-          className="bg-background border rounded-xl shadow-2xl w-[520px] max-h-[80vh] overflow-hidden"
+          className="bg-background border rounded-xl shadow-2xl w-[560px] max-h-[85vh] overflow-hidden"
           onClick={(e) => e.stopPropagation()}
         >
           <div className="flex items-center justify-between p-4 border-b">
@@ -263,8 +273,8 @@ function SettingsDialog() {
                 <Settings className="h-5 w-5 text-violet-400" />
               </div>
               <div>
-                <h2 className="text-sm font-semibold">Configuracion</h2>
-                <p className="text-xs text-muted-foreground">Preferencias de Riceboard</p>
+                <h2 className="text-sm font-semibold">{t("settings.title")}</h2>
+                <p className="text-xs text-muted-foreground">{t("settings.subtitle")}</p>
               </div>
             </div>
             <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setSettingsOpen(false)}>
@@ -272,49 +282,90 @@ function SettingsDialog() {
             </Button>
           </div>
 
-          <div className="p-4 space-y-6 overflow-auto max-h-[60vh]">
+          <div className="p-4 space-y-6 overflow-auto max-h-[65vh]">
+            {/* Language */}
             <div>
-              <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">Tema</h3>
+              <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">{t("settings.language")}</h3>
               <div className="flex gap-2">
-                {(["dark", "light", "system"] as const).map((t) => (
+                {(["en", "es"] as const).map((lang) => (
                   <button
-                    key={t}
-                    onClick={() => setTheme(t)}
-                    className={`px-3 py-1.5 rounded-lg border text-xs transition-all ${
-                      theme === t
+                    key={lang}
+                    onClick={() => setLanguage(lang)}
+                    className={`px-4 py-1.5 rounded-lg border text-xs transition-all ${
+                      language === lang
                         ? "border-violet-500/50 bg-violet-500/10 text-violet-400"
                         : "border-border hover:bg-accent/50"
                     }`}
                   >
-                    {t === "dark" ? "Oscuro" : t === "light" ? "Claro" : "Sistema"}
+                    {lang === "en" ? "English" : "Espanol"}
                   </button>
                 ))}
               </div>
             </div>
 
+            {/* Theme */}
             <div>
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Font Size Overrides</h3>
-                {Object.keys(fontSizeOverrides).length > 0 && (
-                  <button onClick={resetFontSizeOverrides} className="text-[10px] text-violet-400 hover:text-violet-300">Reset all</button>
-                )}
+              <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">{t("settings.theme")}</h3>
+              <div className="flex gap-2">
+                {(["dark", "light", "system"] as const).map((th) => (
+                  <button
+                    key={th}
+                    onClick={() => setTheme(th)}
+                    className={`px-4 py-1.5 rounded-lg border text-xs transition-all ${
+                      theme === th
+                        ? "border-violet-500/50 bg-violet-500/10 text-violet-400"
+                        : "border-border hover:bg-accent/50"
+                    }`}
+                  >
+                    {t(`settings.theme.${th}`)}
+                  </button>
+                ))}
               </div>
-              {Object.keys(fontSizeOverrides).length === 0 ? (
-                <p className="text-xs text-muted-foreground">No hay overrides. Usa Ctrl+K para cambiar font sizes.</p>
-              ) : (
-                <div className="grid grid-cols-2 gap-1.5">
-                  {Object.entries(fontSizeOverrides).map(([plugin, size]) => (
-                    <div key={plugin} className="flex items-center justify-between px-2 py-1 rounded bg-muted/50 text-xs">
-                      <span>{plugin}</span>
-                      <span className="text-muted-foreground">{size}px</span>
-                    </div>
-                  ))}
-                </div>
-              )}
             </div>
 
+            {/* Font Size Sliders */}
             <div>
-              <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">Plugins activos</h3>
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{t("settings.fontSizes")}</h3>
+                {Object.keys(fontSizeOverrides).length > 0 && (
+                  <button onClick={resetFontSizeOverrides} className="text-[10px] text-violet-400 hover:text-violet-300">{t("settings.fontSizes.reset")}</button>
+                )}
+              </div>
+              <p className="text-[10px] text-muted-foreground mb-3">{t("settings.fontSizes.desc")}</p>
+              <div className="space-y-2.5 max-h-48 overflow-auto pr-1">
+                {simulationPlugins.map((plugin) => {
+                  const currentSize = fontSizeOverrides[plugin] || 11;
+                  return (
+                    <div key={plugin} className="flex items-center gap-3">
+                      <span className="text-xs w-24 shrink-0 truncate">{plugin}</span>
+                      <input
+                        type="range"
+                        min={6}
+                        max={20}
+                        value={currentSize}
+                        onChange={(e) => setFontSizeOverride(plugin, parseInt(e.target.value))}
+                        className="flex-1 h-1 accent-violet-500 cursor-pointer"
+                      />
+                      <input
+                        type="number"
+                        min={6}
+                        max={20}
+                        value={currentSize}
+                        onChange={(e) => {
+                          const v = parseInt(e.target.value);
+                          if (!isNaN(v) && v >= 6 && v <= 20) setFontSizeOverride(plugin, v);
+                        }}
+                        className="w-12 px-1.5 py-0.5 rounded border bg-background text-xs text-center outline-none focus:border-violet-500/50"
+                      />
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Active Plugins */}
+            <div>
+              <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">{t("settings.activePlugins")}</h3>
               <div className="grid grid-cols-2 gap-1.5 max-h-40 overflow-auto">
                 {Object.entries(enabledPlugins).map(([name, enabled]) => (
                   <button
@@ -335,7 +386,7 @@ function SettingsDialog() {
           </div>
 
           <div className="flex items-center justify-end p-4 border-t">
-            <Button size="sm" onClick={() => setSettingsOpen(false)}>Cerrar</Button>
+            <Button size="sm" onClick={() => setSettingsOpen(false)}>{t("settings.close")}</Button>
           </div>
         </motion.div>
       </motion.div>
