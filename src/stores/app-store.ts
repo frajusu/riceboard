@@ -344,7 +344,6 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   restoreSession: async () => {
     const vault = loadVault();
-    get().checkIsLinux();
     if (vault) {
       try {
         set({ activeVaultPath: vault });

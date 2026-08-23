@@ -746,7 +746,12 @@ const Tag = ({ color, children }: { color: string; children: React.ReactNode }) 
 };
 
 export function PreviewPanel() {
-  const { activeTabId, openTabs, previewOpen, togglePreview, previewWidth, setPreviewWidth } = useAppStore();
+  const activeTabId = useAppStore((s) => s.activeTabId);
+  const openTabs = useAppStore((s) => s.openTabs);
+  const previewOpen = useAppStore((s) => s.previewOpen);
+  const togglePreview = useAppStore((s) => s.togglePreview);
+  const previewWidth = useAppStore((s) => s.previewWidth);
+  const setPreviewWidth = useAppStore((s) => s.setPreviewWidth);
   const { resolvedTheme } = useThemeStore();
   const isDark = resolvedTheme === "dark";
   const dimColor = isDark ? "text-[#585b70]" : "text-gray-400";
@@ -810,16 +815,7 @@ export function PreviewPanel() {
   const renderReloadButton = (plugin: string) => {
     const cmd = pluginReloadCommands[plugin];
     if (!cmd) return null;
-    const { isLinux, reloadService } = useAppStore.getState();
-    if (!isLinux) return null;
-    return (
-      <button
-        onClick={() => reloadService(plugin)}
-        className={`mt-1.5 flex items-center gap-1 px-1.5 py-0.5 rounded text-[8px] transition-colors ${isDark ? "bg-[#313244] hover:bg-[#45475a] text-[#cdd6f4]" : "bg-gray-200 hover:bg-gray-300 text-gray-700"}`}
-      >
-        <RefreshCw className="h-2.5 w-2.5" /> Reload
-      </button>
-    );
+    return null;
   };
 
   const renderPluginInfo = () => {
