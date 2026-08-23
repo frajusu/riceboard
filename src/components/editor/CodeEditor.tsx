@@ -1,5 +1,5 @@
-import React, { useState, useRef, useCallback, useEffect } from "react";
-import { X, Save, Circle, Scissors, Copy, ClipboardPaste, Undo2, Redo2, CheckSquare } from "lucide-react";
+import React, { useState, useRef, useCallback, useEffect, useMemo } from "react";
+import { X, Save, Circle, Scissors, Copy, ClipboardPaste, Undo2, Redo2, CheckSquare, AlertTriangle, AlertCircle, ChevronDown, ChevronUp } from "lucide-react";
 import { useAppStore } from "@/stores/app-store";
 import { Button } from "@/components/ui/button";
 import {
@@ -7,6 +7,7 @@ import {
 } from "@/components/ui/tooltip";
 import { useContextMenu } from "@/components/ui/context-menu";
 import { t } from "@/lib/i18n";
+import { validateConfig, type ConfigError } from "@/lib/config-validator";
 
 const editorFontFamily = "'JetBrainsMono Nerd Font', 'Fira Code', 'Cascadia Code', 'Consolas', monospace";
 const editorFontSize = 13;
@@ -139,6 +140,10 @@ export function CodeEditor() {
   const highlightRef = useRef<HTMLDivElement>(null);
   const lineNumRef = useRef<HTMLDivElement>(null);
   const { showMenu, MenuPortal } = useContextMenu();
+  const [errors, setErrors] = useState<ConfigError[]>([]);
+  const [problemsOpen, setProblemsOpen] = useState(false);
+  const [hoveredLine, setHoveredLine] = useState<number | null>(null);
+  const errorTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const activeTab = openTabs.find((t) => t.id === activeTabId);
 
@@ -178,7 +183,21 @@ export function CodeEditor() {
     if (textareaRef.current) textareaRef.current.scrollTop = 0;
     if (highlightRef.current) highlightRef.current.scrollTop = 0;
     if (lineNumRef.current) lineNumRef.current.scrollTop = 0;
+    setErrors([]);
+    setProblemsOpen(false);
+    setHoveredLine(null);
   }, [activeTabId]);
+
+  // Debounced validation
+  useEffect(() => {
+    if (!activeTab) return;
+    if (errorTimerRef.current) clearTimeout(errorTimerRef.current);
+    errorTimerRef.current = setTimeout(() => {
+      const result = validateConfig(activeTab.name, activeTab.content);
+      setErrors(result);
+    }, 300);
+    return () => { if (errorTimerRef.current) clearTimeout(errorTimerRef.current); };
+  }, [activeTab?.content, activeTab?.name]);
 
   const handleContextMenu = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
@@ -217,6 +236,16 @@ export function CodeEditor() {
   const lineCount = lines.length;
   const highlighted = highlightSyntax(activeTab.content, activeTab.name);
   const lineNumWidth = Math.max(40, String(lineCount).length * 9 + 24);
+
+  const errorLines = useMemo(() => {
+    const map = new Map<number, ConfigError[]>();
+    for (const err of errors) {
+      const existing = map.get(err.line) || [];
+      existing.push(err);
+      map.set(err.line, existing);
+    }
+    return map;
+  }, [errors]);
 
   return (
     <div className="flex-1 flex flex-col min-h-0">
@@ -296,9 +325,35 @@ export function CodeEditor() {
             zIndex: 2,
           }}
         >
-          {Array.from({ length: lineCount }, (_, i) => (
-            <div key={i} style={{ minHeight: `${editorFontSize * editorLineHeight}px` }}>{i + 1}</div>
-          ))}
+          {Array.from({ length: lineCount }, (_, i) => {
+            const errs = errorLines.get(i + 1);
+            const hasError = errs?.some(e => e.severity === "error");
+            const hasWarning = errs?.some(e => e.severity === "warning");
+            return (
+              <div
+                key={i}
+                className="relative"
+                style={{ minHeight: `${editorFontSize * editorLineHeight}px` }}
+                onMouseEnter={() => setHoveredLine(i + 1)}
+                onMouseLeave={() => setHoveredLine(null)}
+              >
+                <span className={hasError ? "text-red-400" : hasWarning ? "text-yellow-400" : ""}>
+                  {hasError ? <AlertCircle className="inline h-3 w-3 mr-0.5 -mt-0.5" /> : hasWarning ? <AlertTriangle className="inline h-3 w-3 mr-0.5 -mt-0.5 text-yellow-400" /> : null}
+                  {i + 1}
+                </span>
+                {hoveredLine === i + 1 && errs && errs.length > 0 && (
+                  <div className="absolute left-full ml-2 top-0 z-50 bg-popover border rounded-md shadow-lg p-2 min-w-[200px] max-w-[350px] pointer-events-auto">
+                    {errs.map((err, j) => (
+                      <div key={j} className={`text-[11px] flex items-start gap-1.5 ${err.severity === "error" ? "text-red-400" : "text-yellow-400"}`}>
+                        {err.severity === "error" ? <AlertCircle className="h-3 w-3 mt-0.5 shrink-0" /> : <AlertTriangle className="h-3 w-3 mt-0.5 shrink-0" />}
+                        <span>{err.message}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
       </div>
 
@@ -307,12 +362,59 @@ export function CodeEditor() {
         <div className="flex items-center gap-4">
           <span>{activeTab.name}</span>
           <span>{lineCount} lineas</span>
+          {errors.length > 0 && (
+            <button
+              className={`flex items-center gap-1 px-1.5 py-0.5 rounded hover:bg-accent/50 transition-colors ${errors.some(e => e.severity === "error") ? "text-red-400" : "text-yellow-400"}`}
+              onClick={() => setProblemsOpen(!problemsOpen)}
+            >
+              {errors.some(e => e.severity === "error") ? <AlertCircle className="h-3 w-3" /> : <AlertTriangle className="h-3 w-3" />}
+              <span>{errors.filter(e => e.severity === "error").length} errores, {errors.filter(e => e.severity === "warning").length} warnings</span>
+              {problemsOpen ? <ChevronDown className="h-3 w-3" /> : <ChevronUp className="h-3 w-3" />}
+            </button>
+          )}
         </div>
         <div className="flex items-center gap-4">
           <span>UTF-8</span>
           <span>{activeTab.modified ? "Modificado" : "Guardado"}</span>
         </div>
       </div>
+
+      {/* Problems panel */}
+      {problemsOpen && errors.length > 0 && (
+        <div className="border-t bg-card/50 max-h-[180px] overflow-auto shrink-0">
+          <div className="px-3 py-1.5 text-[10px] font-medium text-muted-foreground border-b flex items-center gap-1.5">
+            <AlertCircle className="h-3 w-3" />Problems ({errors.length})
+          </div>
+          <div className="divide-y">
+            {errors.map((err, i) => (
+              <div
+                key={i}
+                className="px-3 py-1.5 text-[11px] flex items-center gap-2 hover:bg-accent/30 cursor-pointer"
+                onClick={() => {
+                  if (textareaRef.current) {
+                    const ta = textareaRef.current;
+                    const contentLines = ta.value.split("\n");
+                    let pos = 0;
+                    for (let l = 0; l < err.line - 1 && l < contentLines.length; l++) {
+                      pos += contentLines[l].length + 1;
+                    }
+                    ta.focus();
+                    ta.setSelectionRange(pos, pos + 10);
+                    const lineHeight = editorFontSize * editorLineHeight;
+                    ta.scrollTop = Math.max(0, (err.line - 5) * lineHeight);
+                    handleScroll();
+                  }
+                }}
+              >
+                {err.severity === "error" ? <AlertCircle className="h-3 w-3 text-red-400 shrink-0" /> : <AlertTriangle className="h-3 w-3 text-yellow-400 shrink-0" />}
+                <span className="text-muted-foreground w-12 shrink-0">Ln {err.line}</span>
+                <span className={err.severity === "error" ? "text-red-400" : "text-yellow-400"}>{err.message}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {MenuPortal}
     </div>
   );
