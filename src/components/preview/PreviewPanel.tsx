@@ -2,6 +2,7 @@ import React, { useState, useMemo, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Eye, EyeOff, Monitor, Layout, Zap } from "lucide-react";
 import { useAppStore } from "@/stores/app-store";
+import { useThemeStore } from "@/stores/theme-store";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
@@ -554,19 +555,30 @@ function getPluginForFile(name: string): string | null {
   return null;
 }
 
-const InfoCard = ({ title, color, children }: { title: string; color: string; children: React.ReactNode }) => (
-  <div className="bg-[#1e1e2e] rounded-lg p-2 font-mono text-[10px]">
-    <div className="flex items-center gap-1 mb-1.5"><span style={{ color }} className="font-bold">{title}</span></div>
-    <div className="space-y-1 text-[9px] text-[#a6adc8]">{children}</div>
-  </div>
-);
+const InfoCard = ({ title, color, children }: { title: string; color: string; children: React.ReactNode }) => {
+  const { resolvedTheme } = useThemeStore();
+  const isDark = resolvedTheme === "dark";
+  return (
+    <div className={`rounded-lg p-2 font-mono text-[10px] ${isDark ? "bg-[#1e1e2e]" : "bg-gray-100 border border-gray-200"}`}>
+      <div className="flex items-center gap-1 mb-1.5"><span style={{ color }} className="font-bold">{title}</span></div>
+      <div className={`space-y-1 text-[9px] ${isDark ? "text-[#a6adc8]" : "text-gray-500"}`}>{children}</div>
+    </div>
+  );
+};
 
-const Tag = ({ color, children }: { color: string; children: React.ReactNode }) => (
-  <span className="px-1.5 py-0.5 bg-[#313244] rounded text-[8px]" style={{ color }}>{children}</span>
-);
+const Tag = ({ color, children }: { color: string; children: React.ReactNode }) => {
+  const { resolvedTheme } = useThemeStore();
+  const isDark = resolvedTheme === "dark";
+  return (
+    <span className={`px-1.5 py-0.5 rounded text-[8px] ${isDark ? "bg-[#313244]" : "bg-gray-200"}`} style={{ color }}>{children}</span>
+  );
+};
 
 export function PreviewPanel() {
   const { activeTabId, openTabs, previewOpen, togglePreview, previewWidth, setPreviewWidth } = useAppStore();
+  const { resolvedTheme } = useThemeStore();
+  const isDark = resolvedTheme === "dark";
+  const dimColor = isDark ? "text-[#585b70]" : "text-gray-400";
   const activeTab = openTabs.find((t) => t.id === activeTabId);
   const pluginName = activeTab ? getPluginForFile(activeTab.name) : null;
   const content = activeTab?.content || "";
@@ -616,7 +628,7 @@ export function PreviewPanel() {
         {([["gaps_in", c.gapsIn+"px"], ["gaps_out", c.gapsOut+"px"], ["border_size", c.borderSize+"px"], ["rounding", c.rounding+"px"],
           ["blur", c.blurEnabled ? `on (${c.blurSize}/${c.blurPasses})` : "off"], ["animations", c.animationsEnabled ? "on" : "off"],
         ] as [string, string][]).map(([k, v]) => <div key={k} className="flex justify-between"><span>{k}</span><span style={{ color: c.activeBorderColor }}>{v}</span></div>)}
-        <div className="mt-1.5 text-[9px] text-[#585b70]">{c.binds.length} binds | {c.execOnce.length} exec-once</div>
+        <div className={`mt-1.5 text-[9px] ${dimColor}`}>{c.binds.length} binds | {c.execOnce.length} exec-once</div>
       </InfoCard>;
     }
     if (pluginName === "waybar") { const c = parseWaybar(content); return <InfoCard title="waybar/config" color="#a6e3a1"><div className="flex justify-between"><span>position</span><span>{c.position}</span></div><div className="flex justify-between"><span>height</span><span>{c.height}px</span></div><div>left: [{c.left.join(", ")}]</div><div>right: [{c.right.join(", ")}]</div></InfoCard>; }
@@ -625,21 +637,21 @@ export function PreviewPanel() {
     if (pluginName === "ghostty") { const c = parseGhostty(content); return <InfoCard title="ghostty/config" color="#89dceb">{([["font", c.fontFamily], ["size", c.fontSize+""], ["bg", c.background], ["padding_x", c.windowPaddingX+"px"]] as [string,string][]).map(([k,v]) => <div key={k} className="flex justify-between"><span>{k}</span><span>{v}</span></div>)}</InfoCard>; }
     if (pluginName === "rofi") { const c = parseRofi(content); return <InfoCard title="config.rasi" color="#fab387"><div>font: {c.font}</div><div>modi: {c.modi.join(", ")}</div><div>icons: {c.hasIcons ? "on" : "off"}</div><div>width: {c.width}px</div></InfoCard>; }
     if (pluginName === "wofi") { const c = parseWofi(content); return <InfoCard title="wofi/config" color="#fab387"><div>width: {c.width}px</div><div>show: {c.show}</div><div>prompt: {c.prompt}</div><div>images: {c.allowImages ? "on" : "off"}</div></InfoCard>; }
-    if (pluginName === "neovim" || pluginName === "nvim") { const c = parseNvim(content); return <InfoCard title="init.lua" color="#f38ba8"><div className="flex flex-wrap gap-1 mb-1">{c.hasLazy && <Tag color="#cba6f7">lazy.nvim</Tag>}<Tag color="#f38ba8">{c.theme}</Tag>{c.hasTelescope && <Tag color="#89b4fa">telescope</Tag>}{c.hasTreesitter && <Tag color="#a6e3a1">treesitter</Tag>}</div><div className="text-[9px] text-[#585b70]">plugins={c.pluginCount}</div></InfoCard>; }
-    if (pluginName === "zsh") { const c = parseZsh(content); return <InfoCard title=".zshrc" color="#f9e2af"><div className="flex flex-wrap gap-1 mb-1"><Tag color="#f9e2af">{c.theme}</Tag>{c.hasP10k && <Tag color="#cba6f7">p10k</Tag>}</div><div className="text-[9px] text-[#585b70]">plugins=[{c.plugins.join(", ")}]</div></InfoCard>; }
-    if (pluginName === "fish") { const c = parseFish(content); return <InfoCard title="config.fish" color="#a6e3a1"><div className="flex flex-wrap gap-1 mb-1"><Tag color="#a6e3a1">{c.theme}</Tag>{c.hasFisher && <Tag color="#89b4fa">fisher</Tag>}{c.hasZoxide && <Tag color="#cba6f7">zoxide</Tag>}</div><div className="text-[9px] text-[#585b70]">plugins: {c.plugins.join(", ") || "none"}</div></InfoCard>; }
+    if (pluginName === "neovim" || pluginName === "nvim") { const c = parseNvim(content); return <InfoCard title="init.lua" color="#f38ba8"><div className="flex flex-wrap gap-1 mb-1">{c.hasLazy && <Tag color="#cba6f7">lazy.nvim</Tag>}<Tag color="#f38ba8">{c.theme}</Tag>{c.hasTelescope && <Tag color="#89b4fa">telescope</Tag>}{c.hasTreesitter && <Tag color="#a6e3a1">treesitter</Tag>}</div><div className={`text-[9px] ${dimColor}`}>plugins={c.pluginCount}</div></InfoCard>; }
+    if (pluginName === "zsh") { const c = parseZsh(content); return <InfoCard title=".zshrc" color="#f9e2af"><div className="flex flex-wrap gap-1 mb-1"><Tag color="#f9e2af">{c.theme}</Tag>{c.hasP10k && <Tag color="#cba6f7">p10k</Tag>}</div><div className={`text-[9px] ${dimColor}`}>plugins=[{c.plugins.join(", ")}]</div></InfoCard>; }
+    if (pluginName === "fish") { const c = parseFish(content); return <InfoCard title="config.fish" color="#a6e3a1"><div className="flex flex-wrap gap-1 mb-1"><Tag color="#a6e3a1">{c.theme}</Tag>{c.hasFisher && <Tag color="#89b4fa">fisher</Tag>}{c.hasZoxide && <Tag color="#cba6f7">zoxide</Tag>}</div><div className={`text-[9px] ${dimColor}`}>plugins: {c.plugins.join(", ") || "none"}</div></InfoCard>; }
     if (pluginName === "bash") { const c = parseBash(content); return <InfoCard title=".bashrc" color="#a6e3a1"><div>aliases: {c.aliasCount}</div><div className="flex flex-wrap gap-1 mt-1">{c.hasNvm && <Tag color="#a6e3a1">nvm</Tag>}{c.hasConda && <Tag color="#cba6f7">conda</Tag>}{c.hasPnpm && <Tag color="#f9e2af">pnpm</Tag>}{c.hasBashCompletion && <Tag color="#89b4fa">completion</Tag>}</div></InfoCard>; }
     if (pluginName === "mako") { const c = parseMako(content); return <InfoCard title="mako/config" color="#f5c2e7"><div>width: {c.width}px</div><div>radius: {c.borderRadius}px</div><div>timeout: {c.timeout}ms</div></InfoCard>; }
     if (pluginName === "dunst") { const c = parseDunst(content); return <InfoCard title="dunstrc" color="#f5c2e7"><div>width: {c.width}px</div><div>radius: {c.cornerRadius}px</div><div>padding: {c.padding}px</div><div>timeout: {c.timeout}s</div></InfoCard>; }
-    if (pluginName === "tmux") { const c = parseTmux(content); return <InfoCard title="tmux.conf" color="#a6adc8"><div className="flex flex-wrap gap-1 mb-1"><Tag color="#a6adc8">prefix={c.prefix}</Tag>{c.hasTPM && <Tag color="#89b4fa">tpm</Tag>}{c.hasVi && <Tag color="#a6e3a1">vi</Tag>}</div><div className="text-[9px] text-[#585b70]">binds={c.bindCount} mouse={c.hasMouse?"on":"off"}</div></InfoCard>; }
+    if (pluginName === "tmux") { const c = parseTmux(content); return <InfoCard title="tmux.conf" color="#a6adc8"><div className="flex flex-wrap gap-1 mb-1"><Tag color="#a6adc8">prefix={c.prefix}</Tag>{c.hasTPM && <Tag color="#89b4fa">tpm</Tag>}{c.hasVi && <Tag color="#a6e3a1">vi</Tag>}</div><div className={`text-[9px] ${dimColor}`}>binds={c.bindCount} mouse={c.hasMouse?"on":"off"}</div></InfoCard>; }
     if (pluginName === "btop") { const c = parseBtop(content); return <InfoCard title="btop.conf" color="#89dceb"><div>theme: {c.theme}</div><div>update: {c.updateMs}ms</div></InfoCard>; }
-    if (pluginName === "swww") return <InfoCard title="swww-daemon" color="#89dceb"><div className="text-[9px] text-[#585b70]">Runtime only: swww img &lt;path&gt; --transition-type fade</div></InfoCard>;
+    if (pluginName === "swww") return <InfoCard title="swww-daemon" color="#89dceb"><div className={`text-[9px] ${dimColor}`}>Runtime only: swww img &lt;path&gt; --transition-type fade</div></InfoCard>;
     if (pluginName === "hyprpaper") { const c = parseHyprpaper(content); return <InfoCard title="hyprpaper.conf" color="#cba6f7"><div>wallpaper: {c.wallpaper || "not set"}</div><div>preloaded: {c.preload.length}</div><div>splash: {c.splash ? "on" : "off"}</div></InfoCard>; }
     if (pluginName === "hyprlock") { const c = parseHyprlock(content); return <InfoCard title="hyprlock.conf" color="#cba6f7"><div>bg: {c.bgColor}</div><div>font: {c.fontFamily} {c.fontSize}px</div><div>blur: {c.blurPasses} passes</div><div>clock: {c.showClock ? "on" : "off"}</div></InfoCard>; }
-    if (pluginName === "eww") { const c = parseEww(content); return <InfoCard title="eww.yuck" color="#f9e2af"><div className="flex flex-wrap gap-1 mb-1">{c.widgets.map(w => <Tag key={w} color="#f9e2af">{w}</Tag>)}</div><div className="text-[9px] text-[#585b70]">widgets={c.widgetCount} vars={c.vars.length} buttons={c.buttons}</div></InfoCard>; }
+    if (pluginName === "eww") { const c = parseEww(content); return <InfoCard title="eww.yuck" color="#f9e2af"><div className="flex flex-wrap gap-1 mb-1">{c.widgets.map(w => <Tag key={w} color="#f9e2af">{w}</Tag>)}</div><div className={`text-[9px] ${dimColor}`}>widgets={c.widgetCount} vars={c.vars.length} buttons={c.buttons}</div></InfoCard>; }
     if (pluginName === "cava") { const c = parseCava(content); return <InfoCard title="cava/config" color="#89dceb"><div>method: {c.method}</div><div>bars: {c.bars} (w:{c.barWidth} s:{c.barSpacing})</div><div>framerate: {c.framerate}fps</div><div>sensitivity: {c.sensitivity}</div></InfoCard>; }
     if (pluginName === "starship") { const c = parseStarship(content); return <InfoCard title="starship.toml" color="#f9e2af"><div>modules: {c.modules}</div><div>prompt: {c.promptChar}</div><div>truncation: {c.directory}</div></InfoCard>; }
-    if (pluginName === "fastfetch") { const c = parseFastfetch(content); return <InfoCard title="config.jsonc" color="#89dceb"><div>logo: {c.logoType}</div><div>modules: {c.moduleOrder.length}</div>{c.moduleOrder.length > 0 && <div className="text-[9px] text-[#585b70]">[{c.moduleOrder.slice(0, 6).join(", ")}{c.moduleOrder.length > 6 ? "..." : ""}]</div>}</InfoCard>; }
+    if (pluginName === "fastfetch") { const c = parseFastfetch(content); return <InfoCard title="config.jsonc" color="#89dceb"><div>logo: {c.logoType}</div><div>modules: {c.moduleOrder.length}</div>{c.moduleOrder.length > 0 && <div className={`text-[9px] ${dimColor}`}>[{c.moduleOrder.slice(0, 6).join(", ")}{c.moduleOrder.length > 6 ? "..." : ""}]</div>}</InfoCard>; }
     return null;
   };
 
