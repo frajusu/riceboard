@@ -20,7 +20,7 @@ function formatTimestamp(ts: number): string {
 }
 
 export function SnapshotTimeline() {
-  const { snapshots } = useAppStore();
+  const snapshots = useAppStore((s) => s.snapshots);
 
   return (
     <div className="p-3">

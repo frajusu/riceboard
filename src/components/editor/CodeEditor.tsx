@@ -128,7 +128,12 @@ function highlightTokens(text: string, kws: string[], ext: string): React.ReactN
 }
 
 export function CodeEditor() {
-  const { openTabs, activeTabId, updateTabContent, closeTab, setActiveTab, saveCurrentFile } = useAppStore();
+  const openTabs = useAppStore((s) => s.openTabs);
+  const activeTabId = useAppStore((s) => s.activeTabId);
+  const updateTabContent = useAppStore((s) => s.updateTabContent);
+  const closeTab = useAppStore((s) => s.closeTab);
+  const setActiveTab = useAppStore((s) => s.setActiveTab);
+  const saveCurrentFile = useAppStore((s) => s.saveCurrentFile);
   const containerRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const highlightRef = useRef<HTMLDivElement>(null);

@@ -53,7 +53,7 @@ const pluginIcons: Record<string, React.ReactNode> = {
 
 function FileTreeItem({ node, depth = 0, onContextMenu }: { node: FileNode; depth?: number; onContextMenu: (e: React.MouseEvent, node: FileNode) => void }) {
   const [expanded, setExpanded] = useState(false);
-  const { openFile } = useAppStore();
+  const openFile = useAppStore((s) => s.openFile);
   const isDir = node.type === "directory";
 
   return (
@@ -97,12 +97,23 @@ const sidebarSections = [
 ];
 
 export function Sidebar() {
-  const {
-    sidebarOpen, fileTree, activeVaultPath, setActiveVaultPath,
-    setFileTree, openTabs, activeTabId, sidebarWidth, setSidebarWidth,
-    enabledPlugins, togglePlugin, setSetupDialogOpen, setPendingVaultPath,
-    deleteFile, renameFile, createFolder, refreshFileTree,
-  } = useAppStore();
+  const sidebarOpen = useAppStore((s) => s.sidebarOpen);
+  const fileTree = useAppStore((s) => s.fileTree);
+  const activeVaultPath = useAppStore((s) => s.activeVaultPath);
+  const setActiveVaultPath = useAppStore((s) => s.setActiveVaultPath);
+  const setFileTree = useAppStore((s) => s.setFileTree);
+  const openTabs = useAppStore((s) => s.openTabs);
+  const activeTabId = useAppStore((s) => s.activeTabId);
+  const sidebarWidth = useAppStore((s) => s.sidebarWidth);
+  const setSidebarWidth = useAppStore((s) => s.setSidebarWidth);
+  const enabledPlugins = useAppStore((s) => s.enabledPlugins);
+  const togglePlugin = useAppStore((s) => s.togglePlugin);
+  const setSetupDialogOpen = useAppStore((s) => s.setSetupDialogOpen);
+  const setPendingVaultPath = useAppStore((s) => s.setPendingVaultPath);
+  const deleteFile = useAppStore((s) => s.deleteFile);
+  const renameFile = useAppStore((s) => s.renameFile);
+  const createFolder = useAppStore((s) => s.createFolder);
+  const refreshFileTree = useAppStore((s) => s.refreshFileTree);
   const [activeSection, setActiveSection] = useState("files");
   const [newFileName, setNewFileName] = useState("");
   const [showNewFileInput, setShowNewFileInput] = useState(false);

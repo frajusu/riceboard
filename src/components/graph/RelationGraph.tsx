@@ -145,7 +145,7 @@ function buildGraphFromFiles(fileTree: any[]): { nodes: GraphNode[]; edges: Grap
 export function RelationGraph() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  const { fileTree } = useAppStore();
+  const fileTree = useAppStore((s) => s.fileTree);
   const [zoom, setZoom] = useState(1);
   const [offset, setOffset] = useState({ x: 0, y: 0 });
   const [hoveredNode, setHoveredNode] = useState<string | null>(null);

@@ -50,11 +50,12 @@ const pluginOptions = [
 ];
 
 function VaultSetupDialog() {
-  const {
-    setupDialogOpen, setSetupDialogOpen,
-    pendingVaultPath, setPendingVaultPath,
-    setActiveVaultPath, setFileTree,
-  } = useAppStore();
+  const setupDialogOpen = useAppStore((s) => s.setupDialogOpen);
+  const setSetupDialogOpen = useAppStore((s) => s.setSetupDialogOpen);
+  const pendingVaultPath = useAppStore((s) => s.pendingVaultPath);
+  const setPendingVaultPath = useAppStore((s) => s.setPendingVaultPath);
+  const setActiveVaultPath = useAppStore((s) => s.setActiveVaultPath);
+  const setFileTree = useAppStore((s) => s.setFileTree);
   const [selected, setSelected] = useState<Record<string, boolean>>({});
   const [creating, setCreating] = useState(false);
   const [created, setCreated] = useState<string[]>([]);
