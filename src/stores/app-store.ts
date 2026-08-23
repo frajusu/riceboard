@@ -127,10 +127,26 @@ interface AppState {
   enabledPlugins: Record<string, boolean>;
   togglePlugin: (name: string) => void;
 
+  activeSidebarSection: string;
+  setActiveSidebarSection: (section: string) => void;
+
+  showDesktop: boolean;
+  toggleShowDesktop: () => void;
+
+  fontSizeOverrides: Record<string, number>;
+  setFontSizeOverride: (plugin: string, size: number) => void;
+  resetFontSizeOverrides: () => void;
+
   setupDialogOpen: boolean;
   setSetupDialogOpen: (open: boolean) => void;
   pendingVaultPath: string | null;
   setPendingVaultPath: (path: string | null) => void;
+
+  settingsOpen: boolean;
+  setSettingsOpen: (open: boolean) => void;
+
+  newPluginDialogOpen: boolean;
+  setNewPluginDialogOpen: (open: boolean) => void;
 
   restoreSession: () => Promise<void>;
 }
@@ -340,6 +356,23 @@ export const useAppStore = create<AppState>((set, get) => ({
   setSetupDialogOpen: (open) => set({ setupDialogOpen: open }),
   pendingVaultPath: null,
   setPendingVaultPath: (path) => set({ pendingVaultPath: path }),
+
+  activeSidebarSection: "files",
+  setActiveSidebarSection: (section) => set({ activeSidebarSection: section }),
+
+  showDesktop: false,
+  toggleShowDesktop: () => set((s) => ({ showDesktop: !s.showDesktop })),
+
+  fontSizeOverrides: {},
+  setFontSizeOverride: (plugin, size) =>
+    set((s) => ({ fontSizeOverrides: { ...s.fontSizeOverrides, [plugin]: size } })),
+  resetFontSizeOverrides: () => set({ fontSizeOverrides: {} }),
+
+  settingsOpen: false,
+  setSettingsOpen: (open) => set({ settingsOpen: open }),
+
+  newPluginDialogOpen: false,
+  setNewPluginDialogOpen: (open) => set({ newPluginDialogOpen: open }),
 
   restoreSession: async () => {
     const vault = loadVault();

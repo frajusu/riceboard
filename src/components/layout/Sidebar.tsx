@@ -114,7 +114,8 @@ export function Sidebar() {
   const renameFile = useAppStore((s) => s.renameFile);
   const createFolder = useAppStore((s) => s.createFolder);
   const refreshFileTree = useAppStore((s) => s.refreshFileTree);
-  const [activeSection, setActiveSection] = useState("files");
+  const activeSidebarSection = useAppStore((s) => s.activeSidebarSection);
+  const setActiveSidebarSection = useAppStore((s) => s.setActiveSidebarSection);
   const [newFileName, setNewFileName] = useState("");
   const [showNewFileInput, setShowNewFileInput] = useState(false);
   const { showMenu, MenuPortal } = useContextMenu();
@@ -196,7 +197,7 @@ export function Sidebar() {
             return (
               <Tooltip key={section.id}>
                 <TooltipTrigger asChild>
-                  <Button variant={activeSection === section.id ? "secondary" : "ghost"} size="icon" className="h-7 w-7 transition-all duration-100 hover:bg-accent/80 active:scale-95" onClick={() => setActiveSection(section.id)}>
+                  <Button variant={activeSidebarSection === section.id ? "secondary" : "ghost"} size="icon" className="h-7 w-7 transition-all duration-100 hover:bg-accent/80 active:scale-95" onClick={() => setActiveSidebarSection(section.id)}>
                     <Icon className="h-3.5 w-3.5" />
                   </Button>
                 </TooltipTrigger>
@@ -248,7 +249,7 @@ export function Sidebar() {
         </AnimatePresence>
 
         <ScrollArea className="flex-1">
-          {activeSection === "files" && (
+          {activeSidebarSection === "files" && (
             <div className="p-1">
               {activeVaultPath ? (
                 <>
@@ -276,7 +277,7 @@ export function Sidebar() {
             </div>
           )}
 
-          {activeSection === "plugins" && (
+          {activeSidebarSection === "plugins" && (
             <div className="p-2">
               <p className="text-[10px] font-medium text-muted-foreground mb-2 uppercase tracking-wider px-1">Plugins</p>
               {Object.keys(pluginIcons).map((name) => {
@@ -296,8 +297,8 @@ export function Sidebar() {
             </div>
           )}
 
-          {activeSection === "snapshots" && <SnapshotTimeline />}
-          {activeSection === "graph" && <RelationGraph />}
+          {activeSidebarSection === "snapshots" && <SnapshotTimeline />}
+          {activeSidebarSection === "graph" && <RelationGraph />}
         </ScrollArea>
       </motion.aside>
       {MenuPortal}

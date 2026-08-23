@@ -1,8 +1,7 @@
-import React, { useState, useMemo, useRef } from "react";
+import React, { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Eye, EyeOff, Monitor, Layout, Zap, RefreshCw } from "lucide-react";
+import { Eye, EyeOff, Monitor, Layout, Zap } from "lucide-react";
 import { useAppStore } from "@/stores/app-store";
-import { useThemeStore } from "@/stores/theme-store";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
@@ -526,17 +525,17 @@ function DesktopSimulation({ hCfg, wCfg, kCfg, mCfg, rCfg, nCfg, bCfg }: {
           {hasSWWW && <div className="absolute inset-0" style={{ background: "radial-gradient(ellipse at 30% 70%, rgba(203,166,247,0.1) 0%, transparent 50%), radial-gradient(ellipse at 70% 30%, rgba(137,180,250,0.1) 0%, transparent 50%)" }} />}
         </div>
         {hasWaybar && (
-          <div className="relative z-20 flex items-center justify-between px-2" style={{ height: Math.min(wCfg.height, 36), backgroundColor: "rgba(17,17,27,0.88)", borderBottom: "1px solid rgba(49,50,68,0.4)" }}>
+          <div className="relative z-20 flex items-center justify-between px-2" style={{ height: Math.min(wCfg.height, 36), backgroundColor: "rgba(17,17,27,0.95)", borderBottom: "1px solid rgba(49,50,68,0.5)" }}>
             <div className="flex items-center" style={{ gap: wCfg.spacing }}>
               {wCfg.left.includes("hyprland/workspaces") && Array.from({ length: 10 }, (_, i) => (
-                <button key={i} onClick={() => setActiveWs(i + 1)} className="rounded flex items-center justify-center transition-all" style={{ width: 20, height: 20, fontSize: 9, backgroundColor: i + 1 === activeWs ? `${wsColors[i % wsColors.length]}33` : "transparent", color: i + 1 === activeWs ? wsColors[i % wsColors.length] : "#585b70", border: i + 1 === activeWs ? `1px solid ${wsColors[i % wsColors.length]}55` : "1px solid transparent" }}>{i + 1}</button>
+                <button key={i} onClick={() => setActiveWs(i + 1)} className="rounded flex items-center justify-center transition-all" style={{ width: 22, height: 22, fontSize: 11, backgroundColor: i + 1 === activeWs ? `${wsColors[i % wsColors.length]}33` : "transparent", color: i + 1 === activeWs ? wsColors[i % wsColors.length] : "#585b70", border: i + 1 === activeWs ? `1px solid ${wsColors[i % wsColors.length]}55` : "1px solid transparent" }}>{i + 1}</button>
               ))}
-              {wCfg.left.includes("hyprland/window") && <span className="ml-1 text-[#cdd6f4] text-[8px]">kitty ~ </span>}
+              {wCfg.left.includes("hyprland/window") && <span className="ml-1 text-[#cdd6f4] text-[11px]">kitty ~ </span>}
             </div>
-            <div className="flex items-center" style={{ gap: wCfg.spacing * 2, fontSize: 9 }}>
+            <div className="flex items-center" style={{ gap: wCfg.spacing * 2, fontSize: 11 }}>
               {wCfg.center.map((m: string, i: number) => m === "clock" && <span key={i} className="text-[#f9e2af]">{sys.time}</span>)}
             </div>
-            <div className="flex items-center text-[#a6adc8]" style={{ gap: wCfg.spacing, fontSize: 9 }}>
+            <div className="flex items-center text-[#a6adc8]" style={{ gap: wCfg.spacing, fontSize: 11 }}>
               {wCfg.right.includes("pulseaudio") && <span className="text-[#f5c2e7]">{sys.volume}%</span>}
               {wCfg.right.includes("network") && <span className="text-[#89b4fa]">{sys.wifi}</span>}
               {wCfg.right.includes("battery") && <span className="text-[#a6e3a1]">{sys.battery}%</span>}
@@ -548,17 +547,17 @@ function DesktopSimulation({ hCfg, wCfg, kCfg, mCfg, rCfg, nCfg, bCfg }: {
             {isMaster ? (
               <>
                 <div className="flex-1 flex flex-col" style={{ gap: hCfg.gapsIn }}>
-                  <div className="flex-1 flex flex-col overflow-hidden cursor-pointer" onClick={() => setFocusedWin(0)} style={{ border: `${hCfg.borderSize}px solid ${focusedWin === 0 ? hCfg.activeBorderColor : hCfg.inactiveBorderColor}`, borderRadius: hCfg.rounding, opacity: focusedWin === 0 ? hCfg.activeOpacity : hCfg.inactiveOpacity, backdropFilter: blurCSS, backgroundColor: kCfg.bgOpacity < 1 ? `${kCfg.background}ee` : kCfg.background }}>
-                    <div className="flex items-center px-2 py-0.5 text-[8px]" style={{ backgroundColor: "#181825", borderBottom: "1px solid #313244", fontFamily: kCfg.fontFamily }}>
-                      <div className="flex gap-1 mr-2"><div className="w-1.5 h-1.5 rounded-full bg-[#f38ba8]" /><div className="w-1.5 h-1.5 rounded-full bg-[#f9e2af]" /><div className="w-1.5 h-1.5 rounded-full bg-[#a6e3a1]" /></div>
+                  <div className="flex-1 flex flex-col overflow-hidden cursor-pointer" onClick={() => setFocusedWin(0)} style={{ border: `${hCfg.borderSize}px solid ${focusedWin === 0 ? hCfg.activeBorderColor : hCfg.inactiveBorderColor}`, borderRadius: hCfg.rounding, opacity: focusedWin === 0 ? hCfg.activeOpacity : hCfg.inactiveOpacity, backdropFilter: blurCSS, backgroundColor: kCfg.background }}>
+                    <div className="flex items-center px-2 py-0.5 text-[11px]" style={{ backgroundColor: "#181825", borderBottom: "1px solid #313244", fontFamily: kCfg.fontFamily }}>
+                      <div className="flex gap-1.5 mr-2"><div className="w-2 h-2 rounded-full bg-[#f38ba8]" /><div className="w-2 h-2 rounded-full bg-[#f9e2af]" /><div className="w-2 h-2 rounded-full bg-[#a6e3a1]" /></div>
                       <span style={{ color: hCfg.activeBorderColor }}>{hCfg.terminal}</span>
                       <span className="ml-auto text-[#585b70]">~</span>
                     </div>
-                    <div className="flex-1 p-2 overflow-hidden" style={{ color: kCfg.foreground, fontSize: 8, fontFamily: kCfg.fontFamily, lineHeight: 1.6 }}>
+                    <div className="flex-1 p-2.5 overflow-hidden" style={{ color: kCfg.foreground, fontSize: 11, fontFamily: kCfg.fontFamily, lineHeight: 1.7 }}>
                       <div><span style={{ color: hCfg.activeBorderColor }}>{sys.user}@{sys.host}</span><span style={{ color: "#585b70" }}>:</span><span style={{ color: hCfg.activeBorderColor }}>~</span><span style={{ color: "#585b70" }}>$</span> neofetch</div>
-                      <div className="flex gap-2 mt-0.5">
-                        <div style={{ color: hCfg.activeBorderColor, fontSize: 7, lineHeight: 1.3, whiteSpace: "pre" }}>{`  /\\_/\\  \n ( o.o ) \n  > ^ <  \n /|   |\\\n(_|   |_)`}</div>
-                        <div style={{ color: "#a6adc8", fontSize: 7, lineHeight: 1.5 }}>
+                      <div className="flex gap-3 mt-1">
+                        <div style={{ color: hCfg.activeBorderColor, fontSize: 10, lineHeight: 1.4, whiteSpace: "pre" }}>{`  /\\_/\\  \n ( o.o ) \n  > ^ <  \n /|   |\\\n(_|   |_)`}</div>
+                        <div style={{ color: "#a6adc8", fontSize: 10, lineHeight: 1.6 }}>
                           <div><span style={{ color: hCfg.activeBorderColor }}>OS</span> {sys.os}</div>
                           <div><span style={{ color: hCfg.activeBorderColor }}>WM</span> {hCfg.layout}</div>
                           <div><span style={{ color: hCfg.activeBorderColor }}>Term</span> {hCfg.terminal}</div>
@@ -566,61 +565,61 @@ function DesktopSimulation({ hCfg, wCfg, kCfg, mCfg, rCfg, nCfg, bCfg }: {
                           <div><span style={{ color: hCfg.activeBorderColor }}>Mem</span> {sys.mem}</div>
                         </div>
                       </div>
-                      <div className="mt-1"><span style={{ color: hCfg.activeBorderColor }}>$</span> <span style={{ color: "#585b70" }}>{"█"}</span></div>
+                      <div className="mt-1.5"><span style={{ color: hCfg.activeBorderColor }}>$</span> <span style={{ color: "#585b70" }}>{"█"}</span></div>
                     </div>
                   </div>
                 </div>
                 <div className="flex-1 flex flex-col" style={{ gap: hCfg.gapsIn }}>
-                  <div className="flex-1 flex flex-col overflow-hidden cursor-pointer" onClick={() => setFocusedWin(1)} style={{ border: `${hCfg.borderSize}px solid ${focusedWin === 1 ? hCfg.activeBorderColor : hCfg.inactiveBorderColor}`, borderRadius: hCfg.rounding, opacity: focusedWin === 1 ? hCfg.activeOpacity : hCfg.inactiveOpacity, backdropFilter: blurCSS, backgroundColor: kCfg.bgOpacity < 1 ? `${kCfg.background}ee` : kCfg.background }}>
-                    <div className="flex items-center px-2 py-0.5 text-[8px]" style={{ backgroundColor: "#181825", borderBottom: "1px solid #313244", fontFamily: kCfg.fontFamily }}>
-                      <div className="flex gap-1 mr-2"><div className="w-1.5 h-1.5 rounded-full bg-[#f38ba8]" /><div className="w-1.5 h-1.5 rounded-full bg-[#f9e2af]" /><div className="w-1.5 h-1.5 rounded-full bg-[#a6e3a1]" /></div>
+                  <div className="flex-1 flex flex-col overflow-hidden cursor-pointer" onClick={() => setFocusedWin(1)} style={{ border: `${hCfg.borderSize}px solid ${focusedWin === 1 ? hCfg.activeBorderColor : hCfg.inactiveBorderColor}`, borderRadius: hCfg.rounding, opacity: focusedWin === 1 ? hCfg.activeOpacity : hCfg.inactiveOpacity, backdropFilter: blurCSS, backgroundColor: kCfg.background }}>
+                    <div className="flex items-center px-2 py-0.5 text-[11px]" style={{ backgroundColor: "#181825", borderBottom: "1px solid #313244", fontFamily: kCfg.fontFamily }}>
+                      <div className="flex gap-1.5 mr-2"><div className="w-2 h-2 rounded-full bg-[#f38ba8]" /><div className="w-2 h-2 rounded-full bg-[#f9e2af]" /><div className="w-2 h-2 rounded-full bg-[#a6e3a1]" /></div>
                       <span style={{ color: nCfg.theme === "catppuccin" ? "#f38ba8" : hCfg.activeBorderColor }}>nvim init.lua</span>
                     </div>
-                    <div className="flex-1 p-2 overflow-hidden" style={{ color: kCfg.foreground, fontSize: 7, fontFamily: kCfg.fontFamily, lineHeight: 1.6 }}>
+                    <div className="flex-1 p-2.5 overflow-hidden" style={{ color: kCfg.foreground, fontSize: 10, fontFamily: kCfg.fontFamily, lineHeight: 1.7 }}>
                       <div style={{ color: "#585b70" }}>{`-- bootstrap lazy.nvim`}</div>
                       <div><span style={{ color: "#cba6f7" }}>require</span>(<span style={{ color: "#a6e3a1" }}>"lazy"</span>).setup({"{"}</div>
                       {nCfg.hasLazy && <div className="pl-2">{`{ `}<span style={{ color: "#a6e3a1" }}>"catppuccin/nvim"</span>{` },`}</div>}
                       <div>{"})"}</div>
-                      <div className="mt-0.5"><span style={{ color: "#f38ba8" }}>vim</span>.cmd(<span style={{ color: "#a6e3a1" }}>"colorscheme {nCfg.theme}"</span>)</div>
+                      <div className="mt-1"><span style={{ color: "#f38ba8" }}>vim</span>.cmd(<span style={{ color: "#a6e3a1" }}>"colorscheme {nCfg.theme}"</span>)</div>
                     </div>
                   </div>
-                  <div className="flex-1 flex flex-col overflow-hidden cursor-pointer" onClick={() => setFocusedWin(2)} style={{ border: `${hCfg.borderSize}px solid ${focusedWin === 2 ? hCfg.activeBorderColor : hCfg.inactiveBorderColor}`, borderRadius: hCfg.rounding, opacity: focusedWin === 2 ? hCfg.activeOpacity : hCfg.inactiveOpacity, backdropFilter: blurCSS, backgroundColor: kCfg.bgOpacity < 1 ? `${kCfg.background}ee` : kCfg.background }}>
-                    <div className="flex-1 p-2 overflow-hidden" style={{ color: kCfg.foreground, fontSize: 7, fontFamily: kCfg.fontFamily, lineHeight: 1.6 }}>
+                  <div className="flex-1 flex flex-col overflow-hidden cursor-pointer" onClick={() => setFocusedWin(2)} style={{ border: `${hCfg.borderSize}px solid ${focusedWin === 2 ? hCfg.activeBorderColor : hCfg.inactiveBorderColor}`, borderRadius: hCfg.rounding, opacity: focusedWin === 2 ? hCfg.activeOpacity : hCfg.inactiveOpacity, backdropFilter: blurCSS, backgroundColor: kCfg.background }}>
+                    <div className="flex-1 p-2.5 overflow-hidden" style={{ color: kCfg.foreground, fontSize: 10, fontFamily: kCfg.fontFamily, lineHeight: 1.7 }}>
                       <div className="flex justify-between"><span>CPU</span><span style={{ color: "#a6e3a1" }}>42%</span></div>
-                      <div className="h-1 rounded overflow-hidden" style={{ backgroundColor: "#313244" }}><div className="h-full rounded" style={{ width: "42%", backgroundColor: "#89b4fa" }} /></div>
-                      <div className="flex justify-between mt-0.5"><span>MEM</span><span style={{ color: "#f9e2af" }}>6.2/16</span></div>
-                      <div className="h-1 rounded overflow-hidden" style={{ backgroundColor: "#313244" }}><div className="h-full rounded" style={{ width: "39%", backgroundColor: "#f9e2af" }} /></div>
+                      <div className="h-1.5 rounded overflow-hidden mt-0.5" style={{ backgroundColor: "#313244" }}><div className="h-full rounded" style={{ width: "42%", backgroundColor: "#89b4fa" }} /></div>
+                      <div className="flex justify-between mt-1"><span>MEM</span><span style={{ color: "#f9e2af" }}>6.2/16</span></div>
+                      <div className="h-1.5 rounded overflow-hidden mt-0.5" style={{ backgroundColor: "#313244" }}><div className="h-full rounded" style={{ width: "39%", backgroundColor: "#f9e2af" }} /></div>
                     </div>
                   </div>
                 </div>
               </>
             ) : (
               <>
-                <div className="flex-1 flex flex-col overflow-hidden cursor-pointer" onClick={() => setFocusedWin(0)} style={{ border: `${hCfg.borderSize}px solid ${focusedWin === 0 ? hCfg.activeBorderColor : hCfg.inactiveBorderColor}`, borderRadius: hCfg.rounding, opacity: focusedWin === 0 ? hCfg.activeOpacity : hCfg.inactiveOpacity, backdropFilter: blurCSS, backgroundColor: kCfg.bgOpacity < 1 ? `${kCfg.background}ee` : kCfg.background }}>
-                  <div className="flex items-center px-2 py-0.5 text-[8px]" style={{ backgroundColor: "#181825", borderBottom: "1px solid #313244", fontFamily: kCfg.fontFamily }}>
-                    <div className="flex gap-1 mr-2"><div className="w-1.5 h-1.5 rounded-full bg-[#f38ba8]" /><div className="w-1.5 h-1.5 rounded-full bg-[#f9e2af]" /><div className="w-1.5 h-1.5 rounded-full bg-[#a6e3a1]" /></div>
+                <div className="flex-1 flex flex-col overflow-hidden cursor-pointer" onClick={() => setFocusedWin(0)} style={{ border: `${hCfg.borderSize}px solid ${focusedWin === 0 ? hCfg.activeBorderColor : hCfg.inactiveBorderColor}`, borderRadius: hCfg.rounding, opacity: focusedWin === 0 ? hCfg.activeOpacity : hCfg.inactiveOpacity, backdropFilter: blurCSS, backgroundColor: kCfg.background }}>
+                  <div className="flex items-center px-2 py-0.5 text-[11px]" style={{ backgroundColor: "#181825", borderBottom: "1px solid #313244", fontFamily: kCfg.fontFamily }}>
+                    <div className="flex gap-1.5 mr-2"><div className="w-2 h-2 rounded-full bg-[#f38ba8]" /><div className="w-2 h-2 rounded-full bg-[#f9e2af]" /><div className="w-2 h-2 rounded-full bg-[#a6e3a1]" /></div>
                     <span style={{ color: hCfg.activeBorderColor }}>{hCfg.terminal}</span>
                   </div>
-                  <div className="flex-1 p-2 overflow-hidden" style={{ color: kCfg.foreground, fontSize: 8, fontFamily: kCfg.fontFamily, lineHeight: 1.6 }}>
+                  <div className="flex-1 p-2.5 overflow-hidden" style={{ color: kCfg.foreground, fontSize: 11, fontFamily: kCfg.fontFamily, lineHeight: 1.7 }}>
                     <div><span style={{ color: hCfg.activeBorderColor }}>{sys.user}@{sys.host}</span><span style={{ color: "#585b70" }}>:</span><span style={{ color: hCfg.activeBorderColor }}>~</span><span style={{ color: "#585b70" }}>$</span> neofetch</div>
-                    <div className="flex gap-2 mt-0.5">
-                      <div style={{ color: hCfg.activeBorderColor, fontSize: 7, lineHeight: 1.3, whiteSpace: "pre" }}>{`  /\\_/\\  \n ( o.o ) \n  > ^ <  \n /|   |\\\n(_|   |_)`}</div>
-                      <div style={{ color: "#a6adc8", fontSize: 7, lineHeight: 1.5 }}>
+                    <div className="flex gap-3 mt-1">
+                      <div style={{ color: hCfg.activeBorderColor, fontSize: 10, lineHeight: 1.4, whiteSpace: "pre" }}>{`  /\\_/\\  \n ( o.o ) \n  > ^ <  \n /|   |\\\n(_|   |_)`}</div>
+                      <div style={{ color: "#a6adc8", fontSize: 10, lineHeight: 1.6 }}>
                         <div><span style={{ color: hCfg.activeBorderColor }}>OS</span> {sys.os}</div>
                         <div><span style={{ color: hCfg.activeBorderColor }}>WM</span> {hCfg.layout}</div>
                         <div><span style={{ color: hCfg.activeBorderColor }}>CPU</span> {sys.cpu}</div>
                       </div>
                     </div>
-                    <div className="mt-1"><span style={{ color: hCfg.activeBorderColor }}>$</span> <span style={{ color: "#585b70" }}>{"█"}</span></div>
+                    <div className="mt-1.5"><span style={{ color: hCfg.activeBorderColor }}>$</span> <span style={{ color: "#585b70" }}>{"█"}</span></div>
                   </div>
                 </div>
                 <div className="flex-1 flex flex-col" style={{ gap: hCfg.gapsIn }}>
-                  <div className="flex-1 flex flex-col overflow-hidden cursor-pointer" onClick={() => setFocusedWin(1)} style={{ border: `${hCfg.borderSize}px solid ${focusedWin === 1 ? hCfg.activeBorderColor : hCfg.inactiveBorderColor}`, borderRadius: hCfg.rounding, opacity: focusedWin === 1 ? hCfg.activeOpacity : hCfg.inactiveOpacity, backdropFilter: blurCSS, backgroundColor: kCfg.bgOpacity < 1 ? `${kCfg.background}ee` : kCfg.background }}>
-                    <div className="flex items-center px-2 py-0.5 text-[8px]" style={{ backgroundColor: "#181825", borderBottom: "1px solid #313244", fontFamily: kCfg.fontFamily }}>
-                      <div className="flex gap-1 mr-2"><div className="w-1.5 h-1.5 rounded-full bg-[#f38ba8]" /><div className="w-1.5 h-1.5 rounded-full bg-[#f9e2af]" /><div className="w-1.5 h-1.5 rounded-full bg-[#a6e3a1]" /></div>
+                  <div className="flex-1 flex flex-col overflow-hidden cursor-pointer" onClick={() => setFocusedWin(1)} style={{ border: `${hCfg.borderSize}px solid ${focusedWin === 1 ? hCfg.activeBorderColor : hCfg.inactiveBorderColor}`, borderRadius: hCfg.rounding, opacity: focusedWin === 1 ? hCfg.activeOpacity : hCfg.inactiveOpacity, backdropFilter: blurCSS, backgroundColor: kCfg.background }}>
+                    <div className="flex items-center px-2 py-0.5 text-[11px]" style={{ backgroundColor: "#181825", borderBottom: "1px solid #313244", fontFamily: kCfg.fontFamily }}>
+                      <div className="flex gap-1.5 mr-2"><div className="w-2 h-2 rounded-full bg-[#f38ba8]" /><div className="w-2 h-2 rounded-full bg-[#f9e2af]" /><div className="w-2 h-2 rounded-full bg-[#a6e3a1]" /></div>
                       <span style={{ color: "#f38ba8" }}>nvim</span>
                     </div>
-                    <div className="flex-1 p-2 overflow-hidden" style={{ color: kCfg.foreground, fontSize: 7, fontFamily: kCfg.fontFamily, lineHeight: 1.6 }}>
+                    <div className="flex-1 p-2.5 overflow-hidden" style={{ color: kCfg.foreground, fontSize: 10, fontFamily: kCfg.fontFamily, lineHeight: 1.7 }}>
                       <div style={{ color: "#585b70" }}>{`-- lazy.nvim setup`}</div>
                       <div><span style={{ color: "#cba6f7" }}>require</span>(<span style={{ color: "#a6e3a1" }}>"lazy"</span>).setup({"{"}</div>
                       <div className="pl-2">{`{ `}<span style={{ color: "#a6e3a1" }}>"catppuccin"</span>{` },`}</div>
@@ -628,12 +627,12 @@ function DesktopSimulation({ hCfg, wCfg, kCfg, mCfg, rCfg, nCfg, bCfg }: {
                       <div><span style={{ color: "#f38ba8" }}>vim</span>.cmd(<span style={{ color: "#a6e3a1" }}>"colorscheme {nCfg.theme}"</span>)</div>
                     </div>
                   </div>
-                  <div className="flex-1 flex flex-col overflow-hidden cursor-pointer" onClick={() => setFocusedWin(2)} style={{ border: `${hCfg.borderSize}px solid ${focusedWin === 2 ? hCfg.activeBorderColor : hCfg.inactiveBorderColor}`, borderRadius: hCfg.rounding, opacity: focusedWin === 2 ? hCfg.activeOpacity : hCfg.inactiveOpacity, backdropFilter: blurCSS, backgroundColor: kCfg.bgOpacity < 1 ? `${kCfg.background}ee` : kCfg.background }}>
-                    <div className="flex-1 p-2 overflow-hidden" style={{ color: kCfg.foreground, fontSize: 7, fontFamily: kCfg.fontFamily, lineHeight: 1.6 }}>
+                  <div className="flex-1 flex flex-col overflow-hidden cursor-pointer" onClick={() => setFocusedWin(2)} style={{ border: `${hCfg.borderSize}px solid ${focusedWin === 2 ? hCfg.activeBorderColor : hCfg.inactiveBorderColor}`, borderRadius: hCfg.rounding, opacity: focusedWin === 2 ? hCfg.activeOpacity : hCfg.inactiveOpacity, backdropFilter: blurCSS, backgroundColor: kCfg.background }}>
+                    <div className="flex-1 p-2.5 overflow-hidden" style={{ color: kCfg.foreground, fontSize: 10, fontFamily: kCfg.fontFamily, lineHeight: 1.7 }}>
                       <div className="flex justify-between"><span>CPU</span><span style={{ color: "#a6e3a1" }}>42%</span></div>
-                      <div className="h-1 rounded overflow-hidden" style={{ backgroundColor: "#313244" }}><div className="h-full rounded" style={{ width: "42%", backgroundColor: "#89b4fa" }} /></div>
-                      <div className="flex justify-between mt-0.5"><span>MEM</span><span style={{ color: "#f9e2af" }}>6.2/16</span></div>
-                      <div className="h-1 rounded overflow-hidden" style={{ backgroundColor: "#313244" }}><div className="h-full rounded" style={{ width: "39%", backgroundColor: "#f9e2af" }} /></div>
+                      <div className="h-1.5 rounded overflow-hidden mt-0.5" style={{ backgroundColor: "#313244" }}><div className="h-full rounded" style={{ width: "42%", backgroundColor: "#89b4fa" }} /></div>
+                      <div className="flex justify-between mt-1"><span>MEM</span><span style={{ color: "#f9e2af" }}>6.2/16</span></div>
+                      <div className="h-1.5 rounded overflow-hidden mt-0.5" style={{ backgroundColor: "#313244" }}><div className="h-full rounded" style={{ width: "39%", backgroundColor: "#f9e2af" }} /></div>
                     </div>
                   </div>
                 </div>
@@ -642,14 +641,14 @@ function DesktopSimulation({ hCfg, wCfg, kCfg, mCfg, rCfg, nCfg, bCfg }: {
           </div>
           {showRofi && (
             <div className="absolute inset-0 z-30 flex items-center justify-center" style={{ backgroundColor: "rgba(0,0,0,0.5)" }} onClick={() => setShowRofi(false)}>
-              <div className="w-64 overflow-hidden" style={{ border: `2px solid ${hCfg.activeBorderColor}`, borderRadius: hCfg.rounding, backgroundColor: kCfg.background, boxShadow: "0 20px 60px rgba(0,0,0,0.5)", fontFamily: kCfg.fontFamily }} onClick={e => e.stopPropagation()}>
-                <div className="px-3 py-1.5 text-[8px] flex items-center gap-2" style={{ backgroundColor: "#313244" }}>
+              <div className="w-72 overflow-hidden" style={{ border: `2px solid ${hCfg.activeBorderColor}`, borderRadius: hCfg.rounding, backgroundColor: kCfg.background, boxShadow: "0 20px 60px rgba(0,0,0,0.5)", fontFamily: kCfg.fontFamily }} onClick={e => e.stopPropagation()}>
+                <div className="px-3 py-2 text-[11px] flex items-center gap-2" style={{ backgroundColor: "#313244" }}>
                   <span style={{ color: hCfg.activeBorderColor }}>{">"}</span>
                   <span style={{ color: "#a6adc8" }}>Type to search...</span>
                 </div>
                 {["firefox", "kitty", "neovim", "thunar", "pavucontrol", "htop"].map((app, i) => (
-                  <div key={app} className="px-3 py-0.5 text-[8px] flex items-center gap-2" style={{ backgroundColor: i === 0 ? `${hCfg.activeBorderColor}22` : "transparent", color: i === 0 ? hCfg.activeBorderColor : "#a6adc8" }}>
-                    {rCfg.hasIcons && <span style={{ fontSize: 7 }}>{["", "", "", "", "", ""][i] || ""}</span>}
+                  <div key={app} className="px-3 py-1 text-[11px] flex items-center gap-2" style={{ backgroundColor: i === 0 ? `${hCfg.activeBorderColor}22` : "transparent", color: i === 0 ? hCfg.activeBorderColor : "#a6adc8" }}>
+                    {rCfg.hasIcons && <span style={{ fontSize: 10 }}>{["", "", "", "", "", ""][i] || ""}</span>}
                     <span>{app}</span>
                   </div>
                 ))}
@@ -658,17 +657,17 @@ function DesktopSimulation({ hCfg, wCfg, kCfg, mCfg, rCfg, nCfg, bCfg }: {
           )}
           {hasMako && showMako && (
             <div className="absolute z-30" style={{ top: hasWaybar ? Math.min(wCfg.height, 36) + 8 : 8, right: 8 }}>
-              <div className="p-2 text-[8px]" style={{ maxWidth: mCfg.maxWidth * 80, borderRadius: mCfg.borderRadius, backgroundColor: mCfg.bgColor, border: `1px solid ${mCfg.borderColor}44`, color: mCfg.textColor, boxShadow: "0 4px 20px rgba(0,0,0,0.3)", fontFamily: kCfg.fontFamily }}>
-                <div className="flex items-center justify-between mb-0.5">
+              <div className="p-2.5 text-[11px]" style={{ maxWidth: mCfg.maxWidth * 80, borderRadius: mCfg.borderRadius, backgroundColor: mCfg.bgColor, border: `1px solid ${mCfg.borderColor}44`, color: mCfg.textColor, boxShadow: "0 4px 20px rgba(0,0,0,0.3)", fontFamily: kCfg.fontFamily }}>
+                <div className="flex items-center justify-between mb-1">
                   <span style={{ color: mCfg.borderColor, fontWeight: "bold" }}>WiFi connected</span>
-                  <button className="text-[7px] opacity-50 hover:opacity-100" onClick={() => setShowMako(false)}>x</button>
+                  <button className="text-[10px] opacity-50 hover:opacity-100" onClick={() => setShowMako(false)}>x</button>
                 </div>
                 <div style={{ color: "#a6adc8" }}>Connected to {sys.wifi}</div>
               </div>
             </div>
           )}
         </div>
-        <div className="absolute bottom-0 left-0 right-0 z-10 flex items-center justify-center gap-3 py-0.5 text-[7px]" style={{ backgroundColor: "rgba(17,17,27,0.7)", borderTop: "1px solid rgba(49,50,68,0.3)" }}>
+        <div className="absolute bottom-0 left-0 right-0 z-10 flex items-center justify-center gap-3 py-1 text-[9px]" style={{ backgroundColor: "rgba(17,17,27,0.85)", borderTop: "1px solid rgba(49,50,68,0.4)" }}>
           {hCfg.binds.filter(b => b.dispatcher === "exec").slice(0, 4).map((b, i) => (
             <span key={i} className="text-[#585b70]">{b.mods}+{b.key}={b.arg.split(" ").pop()}</span>
           ))}
@@ -677,10 +676,10 @@ function DesktopSimulation({ hCfg, wCfg, kCfg, mCfg, rCfg, nCfg, bCfg }: {
       </div>
       <div className="flex items-center justify-between mt-2 px-1">
         <div className="flex items-center gap-1">
-          <button onClick={() => setShowRofi(!showRofi)} className="px-1.5 py-0.5 rounded text-[8px] transition-colors" style={{ backgroundColor: showRofi ? `${hCfg.activeBorderColor}22` : "#313244", color: showRofi ? hCfg.activeBorderColor : "#a6adc8", border: `1px solid ${showRofi ? hCfg.activeBorderColor + "44" : "transparent"}` }}>Rofi</button>
-          {hasMako && <button onClick={() => setShowMako(!showMako)} className="px-1.5 py-0.5 rounded text-[8px] transition-colors" style={{ backgroundColor: showMako ? "#f5c2e722" : "#313244", color: showMako ? "#f5c2e7" : "#a6adc8", border: `1px solid ${showMako ? "#f5c2e744" : "transparent"}` }}>Mako</button>}
+          <button onClick={() => setShowRofi(!showRofi)} className="px-2 py-1 rounded text-[10px] transition-colors" style={{ backgroundColor: showRofi ? `${hCfg.activeBorderColor}22` : "#313244", color: showRofi ? hCfg.activeBorderColor : "#a6adc8", border: `1px solid ${showRofi ? hCfg.activeBorderColor + "44" : "transparent"}` }}>Rofi</button>
+          {hasMako && <button onClick={() => setShowMako(!showMako)} className="px-2 py-1 rounded text-[10px] transition-colors" style={{ backgroundColor: showMako ? "#f5c2e722" : "#313244", color: showMako ? "#f5c2e7" : "#a6adc8", border: `1px solid ${showMako ? "#f5c2e744" : "transparent"}` }}>Mako</button>}
         </div>
-        <div className="text-[8px] text-[#585b70]">Click windows to focus</div>
+        <div className="text-[10px] text-[#585b70]">Click windows to focus</div>
       </div>
     </div>
   );
@@ -727,21 +726,17 @@ function getPluginForFile(name: string): string | null {
 }
 
 const InfoCard = ({ title, color, children }: { title: string; color: string; children: React.ReactNode }) => {
-  const resolvedTheme = useThemeStore((s) => s.resolvedTheme);
-  const isDark = resolvedTheme === "dark";
   return (
-    <div className={`rounded-lg p-2 font-mono text-[10px] ${isDark ? "bg-[#1e1e2e]" : "bg-gray-100 border border-gray-200"}`}>
-      <div className="flex items-center gap-1 mb-1.5"><span style={{ color }} className="font-bold">{title}</span></div>
-      <div className={`space-y-1 text-[9px] ${isDark ? "text-[#a6adc8]" : "text-gray-500"}`}>{children}</div>
+    <div className="rounded-lg p-2.5 font-mono text-[11px] bg-[#1e1e2e]">
+      <div className="flex items-center gap-1.5 mb-2"><span style={{ color }} className="font-bold">{title}</span></div>
+      <div className="space-y-1.5 text-[10px] text-[#a6adc8]">{children}</div>
     </div>
   );
 };
 
 const Tag = ({ color, children }: { color: string; children: React.ReactNode }) => {
-  const resolvedTheme = useThemeStore((s) => s.resolvedTheme);
-  const isDark = resolvedTheme === "dark";
   return (
-    <span className={`px-1.5 py-0.5 rounded text-[8px] ${isDark ? "bg-[#313244]" : "bg-gray-200"}`} style={{ color }}>{children}</span>
+    <span className="px-1.5 py-0.5 rounded text-[9px] bg-[#313244]" style={{ color }}>{children}</span>
   );
 };
 
@@ -752,9 +747,7 @@ export function PreviewPanel() {
   const togglePreview = useAppStore((s) => s.togglePreview);
   const previewWidth = useAppStore((s) => s.previewWidth);
   const setPreviewWidth = useAppStore((s) => s.setPreviewWidth);
-  const resolvedTheme = useThemeStore((s) => s.resolvedTheme);
-  const isDark = resolvedTheme === "dark";
-  const dimColor = isDark ? "text-[#585b70]" : "text-gray-400";
+  const dimColor = "text-[#585b70]";
   const activeTab = openTabs.find((t) => t.id === activeTabId);
   const pluginName = activeTab ? getPluginForFile(activeTab.name) : null;
   const content = activeTab?.content || "";
@@ -772,7 +765,9 @@ export function PreviewPanel() {
   const nvimC = findTabContent("nvim") || (pluginName === "neovim" ? content : "");
   const btopC = findTabContent("btop") || (pluginName === "btop" ? content : "");
 
-  const [showDesktop, setShowDesktop] = useState(false);
+  const showDesktop = useAppStore((s) => s.showDesktop);
+  const toggleShowDesktop = useAppStore((s) => s.toggleShowDesktop);
+  const fontSizeOverrides = useAppStore((s) => s.fontSizeOverrides);
 
   const hCfg = useMemo(() => { try { return parseHyprland(hyprlandC); } catch { return parseHyprland(""); } }, [hyprlandC]);
   const wCfg = useMemo(() => { try { return parseWaybar(waybarC); } catch { return parseWaybar(""); } }, [waybarC]);
@@ -873,7 +868,7 @@ export function PreviewPanel() {
         <div className="flex items-center gap-1.5 text-xs font-medium"><Eye className="h-3.5 w-3.5 text-muted-foreground" />Preview</div>
         <div className="flex items-center gap-0.5">
           <Tooltip><TooltipTrigger asChild>
-            <Button variant={showDesktop ? "secondary" : "ghost"} size="icon" className="h-6 w-6" onClick={() => setShowDesktop(!showDesktop)}><Monitor className="h-3 w-3" /></Button>
+            <Button variant={showDesktop ? "secondary" : "ghost"} size="icon" className="h-6 w-6" onClick={toggleShowDesktop}><Monitor className="h-3 w-3" /></Button>
           </TooltipTrigger><TooltipContent>Desktop simulation</TooltipContent></Tooltip>
           <Tooltip><TooltipTrigger asChild>
             <Button variant="ghost" size="icon" className="h-6 w-6" onClick={togglePreview}><EyeOff className="h-3 w-3" /></Button>

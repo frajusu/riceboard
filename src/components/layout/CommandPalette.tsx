@@ -6,14 +6,25 @@ import {
   Settings,
   Sun,
   Moon,
+  Monitor,
   FolderOpen,
   Clock,
   GitBranch,
   Layers,
   Terminal,
+  ZoomIn,
+  ZoomOut,
+  RotateCcw,
+  Eye,
+  EyeOff,
+  PanelLeftClose,
+  PanelLeftOpen,
 } from "lucide-react";
 import { useAppStore } from "@/stores/app-store";
 import { useThemeStore } from "@/stores/theme-store";
+import { open } from "@tauri-apps/plugin-dialog";
+import { invoke } from "@tauri-apps/api/core";
+import type { FileNode } from "@/stores/app-store";
 
 interface CommandItem {
   id: string;
@@ -24,12 +35,80 @@ interface CommandItem {
   category: string;
 }
 
+const pluginList = [
+  "hyprland", "waybar", "kitty", "rofi", "neovim", "zsh", "mako", "tmux",
+  "btop", "alacritty", "ghostty", "dunst", "foot", "fuzzel", "wofi",
+  "swaync", "cava", "eww", "starship", "fastfetch", "yazi", "wlogout",
+  "lazygit", "bat", "eza", "wallust", "hyprpaper", "hyprlock", "swww", "bash", "fish",
+];
+
 export function CommandPalette() {
   const commandPaletteOpen = useAppStore((s) => s.commandPaletteOpen);
   const toggleCommandPalette = useAppStore((s) => s.toggleCommandPalette);
   const setTheme = useThemeStore((s) => s.setTheme);
+  const togglePreview = useAppStore((s) => s.togglePreview);
+  const toggleSidebar = useAppStore((s) => s.toggleSidebar);
+  const sidebarOpen = useAppStore((s) => s.sidebarOpen);
+  const previewOpen = useAppStore((s) => s.previewOpen);
+  const setActiveSidebarSection = useAppStore((s) => s.setActiveSidebarSection);
+  const setPendingVaultPath = useAppStore((s) => s.setPendingVaultPath);
+  const setSetupDialogOpen = useAppStore((s) => s.setSetupDialogOpen);
+  const setActiveVaultPath = useAppStore((s) => s.setActiveVaultPath);
+  const setFileTree = useAppStore((s) => s.setFileTree);
+  const fontSizeOverrides = useAppStore((s) => s.fontSizeOverrides);
+  const setFontSizeOverride = useAppStore((s) => s.setFontSizeOverride);
+  const resetFontSizeOverrides = useAppStore((s) => s.resetFontSizeOverrides);
+  const settingsOpen = useAppStore((s) => s.settingsOpen);
+  const setSettingsOpen = useAppStore((s) => s.setSettingsOpen);
+  const setNewPluginDialogOpen = useAppStore((s) => s.setNewPluginDialogOpen);
+  const showDesktop = useAppStore((s) => s.showDesktop);
+  const toggleShowDesktop = useAppStore((s) => s.toggleShowDesktop);
   const [query, setQuery] = useState("");
   const [selectedIndex, setSelectedIndex] = useState(0);
+
+  const handleOpenVault = async () => {
+    try {
+      const selected = await open({ directory: true, multiple: false, title: "Seleccionar vault de dotfiles" });
+      if (selected) {
+        const path = selected as string;
+        setPendingVaultPath(path);
+        setSetupDialogOpen(true);
+      }
+    } catch (err) {
+      console.error("Error opening vault:", err);
+    }
+  };
+
+  const buildFontSizeCommands = (): CommandItem[] => {
+    const cmds: CommandItem[] = [];
+    for (const plugin of pluginList) {
+      const currentSize = fontSizeOverrides[plugin] || 12;
+      cmds.push({
+        id: `font-${plugin}-inc`,
+        label: `${plugin}: aumentar font size`,
+        description: `${currentSize} -> ${currentSize + 1}`,
+        icon: <ZoomIn className="h-4 w-4" />,
+        action: () => { setFontSizeOverride(plugin, currentSize + 1); toggleCommandPalette(); },
+        category: "Font Size",
+      });
+      cmds.push({
+        id: `font-${plugin}-dec`,
+        label: `${plugin}: reducir font size`,
+        description: `${currentSize} -> ${currentSize - 1}`,
+        icon: <ZoomOut className="h-4 w-4" />,
+        action: () => { setFontSizeOverride(plugin, Math.max(6, currentSize - 1)); toggleCommandPalette(); },
+        category: "Font Size",
+      });
+    }
+    cmds.push({
+      id: "font-reset",
+      label: "Reset all font sizes",
+      icon: <RotateCcw className="h-4 w-4" />,
+      action: () => { resetFontSizeOverrides(); toggleCommandPalette(); },
+      category: "Font Size",
+    });
+    return cmds;
+  };
 
   const commands: CommandItem[] = [
     {
@@ -37,74 +116,100 @@ export function CommandPalette() {
       label: "Abrir vault",
       description: "Seleccionar carpeta de dotfiles",
       icon: <FolderOpen className="h-4 w-4" />,
-      action: () => {
-        /* TODO */
-        toggleCommandPalette();
-      },
+      action: () => { handleOpenVault(); toggleCommandPalette(); },
       category: "Archivo",
     },
     {
       id: "theme-dark",
       label: "Tema oscuro",
       icon: <Moon className="h-4 w-4" />,
-      action: () => {
-        setTheme("dark");
-        toggleCommandPalette();
-      },
+      action: () => { setTheme("dark"); toggleCommandPalette(); },
       category: "Apariencia",
     },
     {
       id: "theme-light",
       label: "Tema claro",
       icon: <Sun className="h-4 w-4" />,
-      action: () => {
-        setTheme("light");
-        toggleCommandPalette();
-      },
+      action: () => { setTheme("light"); toggleCommandPalette(); },
+      category: "Apariencia",
+    },
+    {
+      id: "theme-system",
+      label: "Tema del sistema",
+      icon: <Monitor className="h-4 w-4" />,
+      action: () => { setTheme("system"); toggleCommandPalette(); },
       category: "Apariencia",
     },
     {
       id: "snapshots",
       label: "Ver snapshots",
+      description: "Panel de snapshots en la barra lateral",
       icon: <Clock className="h-4 w-4" />,
-      action: toggleCommandPalette,
-      category: "Navegación",
+      action: () => { setActiveSidebarSection("snapshots"); if (!sidebarOpen) toggleSidebar(); toggleCommandPalette(); },
+      category: "Navegacion",
     },
     {
       id: "graph",
       label: "Ver grafo de relaciones",
+      description: "Grafo de dependencias entre plugins",
       icon: <GitBranch className="h-4 w-4" />,
-      action: toggleCommandPalette,
-      category: "Navegación",
+      action: () => { setActiveSidebarSection("graph"); if (!sidebarOpen) toggleSidebar(); toggleCommandPalette(); },
+      category: "Navegacion",
     },
     {
       id: "plugins",
       label: "Gestionar plugins",
+      description: "Panel de plugins en la barra lateral",
       icon: <Layers className="h-4 w-4" />,
-      action: toggleCommandPalette,
+      action: () => { setActiveSidebarSection("plugins"); if (!sidebarOpen) toggleSidebar(); toggleCommandPalette(); },
       category: "Plugins",
     },
     {
+      id: "toggle-preview",
+      label: previewOpen ? "Ocultar preview" : "Mostrar preview",
+      icon: previewOpen ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />,
+      action: () => { togglePreview(); toggleCommandPalette(); },
+      category: "Vista",
+    },
+    {
+      id: "toggle-sidebar",
+      label: sidebarOpen ? "Ocultar barra lateral" : "Mostrar barra lateral",
+      icon: sidebarOpen ? <PanelLeftClose className="h-4 w-4" /> : <PanelLeftOpen className="h-4 w-4" />,
+      action: () => { toggleSidebar(); toggleCommandPalette(); },
+      category: "Vista",
+    },
+    {
+      id: "toggle-desktop",
+      label: showDesktop ? "Ocultar simulacion" : "Mostrar simulacion desktop",
+      icon: <Monitor className="h-4 w-4" />,
+      action: () => { toggleShowDesktop(); if (!previewOpen) togglePreview(); toggleCommandPalette(); },
+      category: "Vista",
+    },
+    {
       id: "settings",
-      label: "Configuración",
+      label: "Configuracion",
+      description: "Abrir panel de configuracion",
       icon: <Settings className="h-4 w-4" />,
-      action: toggleCommandPalette,
+      action: () => { setSettingsOpen(!settingsOpen); toggleCommandPalette(); },
       category: "Sistema",
     },
     {
-      id: "terminal",
-      label: "Abrir terminal",
-      description: "Terminal integrada",
-      icon: <Terminal className="h-4 w-4" />,
-      action: toggleCommandPalette,
-      category: "Herramientas",
+      id: "new-plugin",
+      label: "Crear nuevo plugin",
+      description: "Crear un plugin personalizado con plantilla",
+      icon: <FileText className="h-4 w-4" />,
+      action: () => { setNewPluginDialogOpen(true); toggleCommandPalette(); },
+      category: "Plugins",
     },
   ];
 
-  const filtered = commands.filter(
+  const allCommands = [...commands, ...buildFontSizeCommands()];
+
+  const filtered = allCommands.filter(
     (cmd) =>
       cmd.label.toLowerCase().includes(query.toLowerCase()) ||
-      cmd.category.toLowerCase().includes(query.toLowerCase())
+      cmd.category.toLowerCase().includes(query.toLowerCase()) ||
+      (cmd.description && cmd.description.toLowerCase().includes(query.toLowerCase()))
   );
 
   useEffect(() => {
@@ -164,7 +269,6 @@ export function CommandPalette() {
             className="fixed top-[20%] left-1/2 -translate-x-1/2 z-50 w-full max-w-lg"
           >
             <div className="bg-popover border rounded-xl shadow-2xl overflow-hidden">
-              {/* Search input */}
               <div className="flex items-center gap-3 px-4 py-3 border-b">
                 <Search className="h-4 w-4 text-muted-foreground shrink-0" />
                 <input
@@ -180,7 +284,6 @@ export function CommandPalette() {
                 </kbd>
               </div>
 
-              {/* Results */}
               <div className="max-h-80 overflow-y-auto p-2">
                 {filtered.length === 0 ? (
                   <div className="py-8 text-center text-muted-foreground text-sm">
