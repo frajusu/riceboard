@@ -769,13 +769,13 @@ export function PreviewPanel() {
 
   const [showDesktop, setShowDesktop] = useState(false);
 
-  const hCfg = useMemo(() => parseHyprland(hyprlandC), [hyprlandC]);
-  const wCfg = useMemo(() => parseWaybar(waybarC), [waybarC]);
-  const kCfg = useMemo(() => parseKitty(kittyC), [kittyC]);
-  const mCfg = useMemo(() => parseMako(makoC), [makoC]);
-  const rCfg = useMemo(() => parseRofi(rofiC), [rofiC]);
-  const nCfg = useMemo(() => parseNvim(nvimC), [nvimC]);
-  const bCfg = useMemo(() => parseBtop(btopC), [btopC]);
+  const hCfg = useMemo(() => { try { return parseHyprland(hyprlandC); } catch { return parseHyprland(""); } }, [hyprlandC]);
+  const wCfg = useMemo(() => { try { return parseWaybar(waybarC); } catch { return parseWaybar(""); } }, [waybarC]);
+  const kCfg = useMemo(() => { try { return parseKitty(kittyC); } catch { return parseKitty(""); } }, [kittyC]);
+  const mCfg = useMemo(() => { try { return parseMako(makoC); } catch { return parseMako(""); } }, [makoC]);
+  const rCfg = useMemo(() => { try { return parseRofi(rofiC); } catch { return parseRofi(""); } }, [rofiC]);
+  const nCfg = useMemo(() => { try { return parseNvim(nvimC); } catch { return parseNvim(""); } }, [nvimC]);
+  const bCfg = useMemo(() => { try { return parseBtop(btopC); } catch { return parseBtop(""); } }, [btopC]);
 
   const hasDesktop = hyprlandC.length > 0;
 

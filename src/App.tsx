@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, Component, type ReactNode } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { TitleBar } from "@/components/layout/TitleBar";
@@ -11,6 +11,30 @@ import { useAppStore, type FileNode } from "@/stores/app-store";
 import { Button } from "@/components/ui/button";
 import { invoke } from "@tauri-apps/api/core";
 import { Check, FolderOpen, X } from "lucide-react";
+
+class ErrorBoundary extends Component<{ children: ReactNode }, { hasError: boolean; error: string }> {
+  state = { hasError: false, error: "" };
+  static getDerivedStateFromError(err: Error) { return { hasError: true, error: err.message }; }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="h-screen flex flex-col items-center justify-center bg-background text-foreground p-8">
+          <div className="max-w-md text-center space-y-4">
+            <div className="w-12 h-12 mx-auto rounded-xl bg-gradient-to-br from-violet-500/20 to-fuchsia-500/20 flex items-center justify-center">
+              <span className="text-xl font-bold text-violet-400">R</span>
+            </div>
+            <h1 className="text-lg font-semibold">Algo salio mal</h1>
+            <p className="text-sm text-muted-foreground">{this.state.error}</p>
+            <Button onClick={() => { this.setState({ hasError: false, error: "" }); window.location.reload(); }}>
+              Recargar
+            </Button>
+          </div>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
 
 const pluginOptions = [
   { id: "hyprland", label: "Hyprland", desc: "Window manager", checked: true },
@@ -203,19 +227,21 @@ export default function App() {
   }, []);
 
   return (
-    <TooltipProvider delayDuration={300}>
-      <div className="h-screen flex flex-col overflow-hidden" onContextMenu={(e) => e.preventDefault()}>
-        <TitleBar />
-        <div className="flex-1 flex min-h-0">
-          <Sidebar />
-          <main className="flex-1 flex min-h-0 relative">
-            <CodeEditor />
-            <PreviewPanel />
-          </main>
+    <ErrorBoundary>
+      <TooltipProvider delayDuration={300}>
+        <div className="h-screen flex flex-col overflow-hidden" onContextMenu={(e) => e.preventDefault()}>
+          <TitleBar />
+          <div className="flex-1 flex min-h-0">
+            <Sidebar />
+            <main className="flex-1 flex min-h-0 relative">
+              <CodeEditor />
+              <PreviewPanel />
+            </main>
+          </div>
+          <CommandPalette />
+          <VaultSetupDialog />
         </div>
-        <CommandPalette />
-        <VaultSetupDialog />
-      </div>
-    </TooltipProvider>
+      </TooltipProvider>
+    </ErrorBoundary>
   );
 }
