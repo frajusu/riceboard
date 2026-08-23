@@ -26,7 +26,7 @@ Riceboard is a **Mac-style visual dotfile manager** designed for Linux ricing. I
 
 - **No more blind editing** — See your rice changes in real-time before saving
 - **Mac-inspired UI** — Smooth animations, dark/light mode, traffic light buttons
-- **Per-app simulations** — Each config tool gets its own realistic preview
+- **Per-app simulations** — Each config tool gets its own preview
 - **Plugin system** — Extensible with custom validators and autocomplete
 - **Vault management** — Organize all your dotfiles in one place with snapshots
 
