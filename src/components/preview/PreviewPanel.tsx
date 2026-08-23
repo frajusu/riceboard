@@ -555,18 +555,18 @@ function DesktopSimulation({ hCfg, wCfg, kCfg, mCfg, rCfg, nCfg, bCfg }: {
                       <span className="ml-auto text-[#585b70]">~</span>
                     </div>
                     <div className="flex-1 p-2.5 overflow-hidden" style={{ color: kCfg.foreground, fontSize: 11, fontFamily: kCfg.fontFamily, lineHeight: 1.7 }}>
-                      <div><span style={{ color: hCfg.activeBorderColor }}>{sys.user}@{sys.host}</span><span style={{ color: "#585b70" }}>:</span><span style={{ color: hCfg.activeBorderColor }}>~</span><span style={{ color: "#585b70" }}>$</span> neofetch</div>
+                      <div><span style={{ color: "#cdd6f4" }}>{sys.user}@{sys.host}</span><span style={{ color: "#585b70" }}>:</span><span style={{ color: "#cdd6f4" }}>~</span><span style={{ color: "#585b70" }}>$</span> neofetch</div>
                       <div className="flex gap-3 mt-1">
-                        <div style={{ color: hCfg.activeBorderColor, fontSize: 10, lineHeight: 1.4, whiteSpace: "pre" }}>{`  /\\_/\\  \n ( o.o ) \n  > ^ <  \n /|   |\\\n(_|   |_)`}</div>
-                        <div style={{ color: "#a6adc8", fontSize: 10, lineHeight: 1.6 }}>
-                          <div><span style={{ color: hCfg.activeBorderColor }}>OS</span> {sys.os}</div>
-                          <div><span style={{ color: hCfg.activeBorderColor }}>WM</span> {hCfg.layout}</div>
-                          <div><span style={{ color: hCfg.activeBorderColor }}>Term</span> {hCfg.terminal}</div>
-                          <div><span style={{ color: hCfg.activeBorderColor }}>CPU</span> {sys.cpu}</div>
-                          <div><span style={{ color: hCfg.activeBorderColor }}>Mem</span> {sys.mem}</div>
+                        <div style={{ color: "#cdd6f4", fontSize: 10, lineHeight: 1.4, whiteSpace: "pre" }}>{`  /\\_/\\  \n ( o.o ) \n  > ^ <  \n /|   |\\\n(_|   |_)`}</div>
+                        <div className="text-[10px] leading-relaxed" style={{ fontFamily: kCfg.fontFamily }}>
+                          <div><span style={{ color: "#cdd6f4" }}>OS</span> {sys.os}</div>
+                          <div><span style={{ color: "#cdd6f4" }}>WM</span> {hCfg.layout}</div>
+                          <div><span style={{ color: "#cdd6f4" }}>Term</span> {hCfg.terminal}</div>
+                          <div><span style={{ color: "#cdd6f4" }}>CPU</span> {sys.cpu}</div>
+                          <div><span style={{ color: "#cdd6f4" }}>Mem</span> {sys.mem}</div>
                         </div>
                       </div>
-                      <div className="mt-1.5"><span style={{ color: hCfg.activeBorderColor }}>$</span> <span style={{ color: "#585b70" }}>{"█"}</span></div>
+                      <div className="mt-1.5"><span style={{ color: "#cdd6f4" }}>$</span> <span style={{ color: "#585b70" }}>{"█"}</span></div>
                     </div>
                   </div>
                 </div>
@@ -574,7 +574,7 @@ function DesktopSimulation({ hCfg, wCfg, kCfg, mCfg, rCfg, nCfg, bCfg }: {
                   <div className="flex-1 flex flex-col overflow-hidden cursor-pointer" onClick={() => setFocusedWin(1)} style={{ border: `${hCfg.borderSize}px solid ${focusedWin === 1 ? hCfg.activeBorderColor : hCfg.inactiveBorderColor}`, borderRadius: hCfg.rounding, opacity: focusedWin === 1 ? hCfg.activeOpacity : hCfg.inactiveOpacity, backdropFilter: blurCSS, backgroundColor: kCfg.background }}>
                     <div className="flex items-center px-2 py-0.5 text-[11px]" style={{ backgroundColor: "#181825", borderBottom: "1px solid #313244", fontFamily: kCfg.fontFamily }}>
                       <div className="flex gap-1.5 mr-2"><div className="w-2 h-2 rounded-full bg-[#f38ba8]" /><div className="w-2 h-2 rounded-full bg-[#f9e2af]" /><div className="w-2 h-2 rounded-full bg-[#a6e3a1]" /></div>
-                      <span style={{ color: nCfg.theme === "catppuccin" ? "#f38ba8" : hCfg.activeBorderColor }}>nvim init.lua</span>
+                      <span style={{ color: "#f38ba8" }}>nvim init.lua</span>
                     </div>
                     <div className="flex-1 p-2.5 overflow-hidden" style={{ color: kCfg.foreground, fontSize: 10, fontFamily: kCfg.fontFamily, lineHeight: 1.7 }}>
                       <div style={{ color: "#585b70" }}>{`-- bootstrap lazy.nvim`}</div>
@@ -599,19 +599,19 @@ function DesktopSimulation({ hCfg, wCfg, kCfg, mCfg, rCfg, nCfg, bCfg }: {
                 <div className="flex-1 flex flex-col overflow-hidden cursor-pointer" onClick={() => setFocusedWin(0)} style={{ border: `${hCfg.borderSize}px solid ${focusedWin === 0 ? hCfg.activeBorderColor : hCfg.inactiveBorderColor}`, borderRadius: hCfg.rounding, opacity: focusedWin === 0 ? hCfg.activeOpacity : hCfg.inactiveOpacity, backdropFilter: blurCSS, backgroundColor: kCfg.background }}>
                   <div className="flex items-center px-2 py-0.5 text-[11px]" style={{ backgroundColor: "#181825", borderBottom: "1px solid #313244", fontFamily: kCfg.fontFamily }}>
                     <div className="flex gap-1.5 mr-2"><div className="w-2 h-2 rounded-full bg-[#f38ba8]" /><div className="w-2 h-2 rounded-full bg-[#f9e2af]" /><div className="w-2 h-2 rounded-full bg-[#a6e3a1]" /></div>
-                    <span style={{ color: hCfg.activeBorderColor }}>{hCfg.terminal}</span>
+                    <span style={{ color: "#cdd6f4" }}>{hCfg.terminal}</span>
                   </div>
                   <div className="flex-1 p-2.5 overflow-hidden" style={{ color: kCfg.foreground, fontSize: 11, fontFamily: kCfg.fontFamily, lineHeight: 1.7 }}>
-                    <div><span style={{ color: hCfg.activeBorderColor }}>{sys.user}@{sys.host}</span><span style={{ color: "#585b70" }}>:</span><span style={{ color: hCfg.activeBorderColor }}>~</span><span style={{ color: "#585b70" }}>$</span> neofetch</div>
+                    <div><span style={{ color: "#cdd6f4" }}>{sys.user}@{sys.host}</span><span style={{ color: "#585b70" }}>:</span><span style={{ color: "#cdd6f4" }}>~</span><span style={{ color: "#585b70" }}>$</span> neofetch</div>
                     <div className="flex gap-3 mt-1">
-                      <div style={{ color: hCfg.activeBorderColor, fontSize: 10, lineHeight: 1.4, whiteSpace: "pre" }}>{`  /\\_/\\  \n ( o.o ) \n  > ^ <  \n /|   |\\\n(_|   |_)`}</div>
+                      <div style={{ color: "#cdd6f4", fontSize: 10, lineHeight: 1.4, whiteSpace: "pre" }}>{`  /\\_/\\  \n ( o.o ) \n  > ^ <  \n /|   |\\\n(_|   |_)`}</div>
                       <div style={{ color: "#a6adc8", fontSize: 10, lineHeight: 1.6 }}>
-                        <div><span style={{ color: hCfg.activeBorderColor }}>OS</span> {sys.os}</div>
-                        <div><span style={{ color: hCfg.activeBorderColor }}>WM</span> {hCfg.layout}</div>
-                        <div><span style={{ color: hCfg.activeBorderColor }}>CPU</span> {sys.cpu}</div>
+                        <div><span style={{ color: "#cdd6f4" }}>OS</span> {sys.os}</div>
+                        <div><span style={{ color: "#cdd6f4" }}>WM</span> {hCfg.layout}</div>
+                        <div><span style={{ color: "#cdd6f4" }}>CPU</span> {sys.cpu}</div>
                       </div>
                     </div>
-                    <div className="mt-1.5"><span style={{ color: hCfg.activeBorderColor }}>$</span> <span style={{ color: "#585b70" }}>{"█"}</span></div>
+                    <div className="mt-1.5"><span style={{ color: "#cdd6f4" }}>$</span> <span style={{ color: "#585b70" }}>{"█"}</span></div>
                   </div>
                 </div>
                 <div className="flex-1 flex flex-col" style={{ gap: hCfg.gapsIn }}>
@@ -642,13 +642,13 @@ function DesktopSimulation({ hCfg, wCfg, kCfg, mCfg, rCfg, nCfg, bCfg }: {
           </div>
           {showRofi && (
             <div className="absolute inset-0 z-30 flex items-center justify-center" style={{ backgroundColor: "rgba(0,0,0,0.5)" }} onClick={() => setShowRofi(false)}>
-              <div className="w-72 overflow-hidden" style={{ border: `2px solid ${hCfg.activeBorderColor}`, borderRadius: hCfg.rounding, backgroundColor: "#1e1e2e", boxShadow: "0 20px 60px rgba(0,0,0,0.6)", fontFamily: kCfg.fontFamily }} onClick={e => e.stopPropagation()}>
-                <div className="px-3 py-2 text-[11px] flex items-center gap-2" style={{ backgroundColor: "#181825", borderBottom: `1px solid ${hCfg.activeBorderColor}44` }}>
-                  <span style={{ color: hCfg.activeBorderColor }}>{">"}</span>
+              <div className="w-72 overflow-hidden" style={{ border: `2px solid #cba6f7`, borderRadius: hCfg.rounding, backgroundColor: "#1e1e2e", boxShadow: "0 20px 60px rgba(0,0,0,0.6)", fontFamily: kCfg.fontFamily }} onClick={e => e.stopPropagation()}>
+                <div className="px-3 py-2 text-[11px] flex items-center gap-2" style={{ backgroundColor: "#181825", borderBottom: "1px solid #45475a" }}>
+                  <span style={{ color: "#cba6f7" }}>{">"}</span>
                   <span style={{ color: "#a6adc8" }}>Type to search...</span>
                 </div>
                 {["firefox", "kitty", "neovim", "thunar", "pavucontrol", "htop"].map((app, i) => (
-                  <div key={app} className="px-3 py-1 text-[11px] flex items-center gap-2" style={{ backgroundColor: i === 0 ? `${hCfg.activeBorderColor}22` : "transparent", color: i === 0 ? hCfg.activeBorderColor : "#a6adc8" }}>
+                  <div key={app} className="px-3 py-1 text-[11px] flex items-center gap-2" style={{ backgroundColor: i === 0 ? "#cba6f722" : "transparent", color: i === 0 ? "#cba6f7" : "#a6adc8" }}>
                     {rCfg.hasIcons && <span style={{ fontSize: 10 }}>{["", "", "", "", "", ""][i] || ""}</span>}
                     <span>{app}</span>
                   </div>
@@ -677,8 +677,8 @@ function DesktopSimulation({ hCfg, wCfg, kCfg, mCfg, rCfg, nCfg, bCfg }: {
       </div>
       <div className="flex items-center justify-between mt-2 px-1">
         <div className="flex items-center gap-1">
-          <button onClick={() => setShowRofi(!showRofi)} className="px-2 py-1 rounded text-[10px] transition-colors" style={{ backgroundColor: showRofi ? "rgba(203,166,247,0.15)" : "#313244", color: showRofi ? "#cba6f7" : "#a6adc8", border: `1px solid ${showRofi ? "#cba6f766" : "transparent"}` }}>{t("preview.rofiToggle")}</button>
-          {hasMako && <button onClick={() => setShowMako(!showMako)} className="px-2 py-1 rounded text-[10px] transition-colors" style={{ backgroundColor: showMako ? "rgba(203,166,247,0.15)" : "#313244", color: showMako ? "#cba6f7" : "#a6adc8", border: `1px solid ${showMako ? "#cba6f766" : "transparent"}` }}>{t("preview.makoToggle")}</button>}
+          <button onClick={() => setShowRofi(!showRofi)} className="px-2 py-1 rounded text-[10px] transition-colors font-medium" style={{ backgroundColor: showRofi ? "#1e1e2e" : "#313244", color: showRofi ? "#cdd6f4" : "#a6adc8", border: `1px solid ${showRofi ? "#45475a" : "transparent"}` }}>{t("preview.rofiToggle")}</button>
+          {hasMako && <button onClick={() => setShowMako(!showMako)} className="px-2 py-1 rounded text-[10px] transition-colors font-medium" style={{ backgroundColor: showMako ? "#1e1e2e" : "#313244", color: showMako ? "#cdd6f4" : "#a6adc8", border: `1px solid ${showMako ? "#45475a" : "transparent"}` }}>{t("preview.makoToggle")}</button>}
         </div>
         <div className="text-[10px] text-[#585b70]">{t("preview.clickFocus")}</div>
       </div>
