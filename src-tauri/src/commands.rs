@@ -110,6 +110,45 @@ pub fn create_file(vault_path: String, name: String) -> Result<String, String> {
 }
 
 #[tauri::command]
+pub fn create_folder(vault_path: String, name: String) -> Result<String, String> {
+    let path = PathBuf::from(&vault_path).join(&name);
+    if path.exists() {
+        return Err("Folder already exists".to_string());
+    }
+    fs::create_dir(&path).map_err(|e| e.to_string())?;
+    Ok(path.to_string_lossy().to_string())
+}
+
+#[tauri::command]
+pub fn delete_path(path: String) -> Result<(), String> {
+    let p = PathBuf::from(&path);
+    if !p.exists() {
+        return Err("Path does not exist".to_string());
+    }
+    if p.is_dir() {
+        fs::remove_dir_all(&p).map_err(|e| e.to_string())?;
+    } else {
+        fs::remove_file(&p).map_err(|e| e.to_string())?;
+    }
+    Ok(())
+}
+
+#[tauri::command]
+pub fn rename_path(old_path: String, new_name: String) -> Result<String, String> {
+    let p = PathBuf::from(&old_path);
+    if !p.exists() {
+        return Err("Path does not exist".to_string());
+    }
+    let parent = p.parent().ok_or("Cannot rename root")?;
+    let new_path = parent.join(&new_name);
+    if new_path.exists() {
+        return Err("A file with that name already exists".to_string());
+    }
+    fs::rename(&p, &new_path).map_err(|e| e.to_string())?;
+    Ok(new_path.to_string_lossy().to_string())
+}
+
+#[tauri::command]
 pub fn create_snapshot(vault_path: String) -> Result<String, String> {
     let vault = PathBuf::from(&vault_path);
     if !vault.is_dir() {

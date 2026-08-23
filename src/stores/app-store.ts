@@ -108,6 +108,10 @@ interface AppState {
   setActiveTab: (id: string) => void;
   updateTabContent: (id: string, content: string) => void;
   saveCurrentFile: () => Promise<void>;
+  deleteFile: (path: string) => Promise<void>;
+  renameFile: (oldPath: string, newName: string) => Promise<string>;
+  createFolder: (name: string) => Promise<string>;
+  refreshFileTree: () => Promise<void>;
 
   snapshots: Snapshot[];
   addSnapshot: (snapshot: Snapshot) => void;
@@ -216,6 +220,78 @@ export const useAppStore = create<AppState>((set, get) => ({
       });
     } catch (e) {
       console.error("Save failed:", e);
+    }
+  },
+
+  deleteFile: async (path: string) => {
+    try {
+      await invoke("delete_path", { path });
+      const s = get();
+      const closedTabs = s.openTabs.filter((t) => t.path === path);
+      const remaining = s.openTabs.filter((t) => t.path !== path);
+      let newActive = s.activeTabId;
+      if (closedTabs.some((t) => t.id === s.activeTabId)) {
+        newActive = remaining.length > 0 ? remaining[remaining.length - 1].id : null;
+      }
+      set({ openTabs: remaining, activeTabId: newActive });
+      saveTabs(remaining);
+      if (s.activeVaultPath) {
+        const tree = await invoke<FileNode[]>("scan_directory", { path: s.activeVaultPath });
+        set({ fileTree: tree });
+      }
+    } catch (e) {
+      console.error("Delete failed:", e);
+    }
+  },
+
+  renameFile: async (oldPath: string, newName: string) => {
+    try {
+      const newPath = await invoke<string>("rename_path", { oldPath, newName });
+      const s = get();
+      const tab = s.openTabs.find((t) => t.path === oldPath);
+      if (tab) {
+        const updatedTabs = s.openTabs.map((t) =>
+          t.path === oldPath ? { ...t, path: newPath, name: newName, id: newPath } : t
+        );
+        set({
+          openTabs: updatedTabs,
+          activeTabId: s.activeTabId === oldPath ? newPath : s.activeTabId,
+        });
+        saveTabs(updatedTabs);
+      }
+      if (s.activeVaultPath) {
+        const tree = await invoke<FileNode[]>("scan_directory", { path: s.activeVaultPath });
+        set({ fileTree: tree });
+      }
+      return newPath;
+    } catch (e) {
+      console.error("Rename failed:", e);
+      return oldPath;
+    }
+  },
+
+  createFolder: async (name: string) => {
+    const s = get();
+    if (!s.activeVaultPath) return "";
+    try {
+      const newPath = await invoke<string>("create_folder", { vaultPath: s.activeVaultPath, name });
+      const tree = await invoke<FileNode[]>("scan_directory", { path: s.activeVaultPath });
+      set({ fileTree: tree });
+      return newPath;
+    } catch (e) {
+      console.error("Create folder failed:", e);
+      return "";
+    }
+  },
+
+  refreshFileTree: async () => {
+    const s = get();
+    if (!s.activeVaultPath) return;
+    try {
+      const tree = await invoke<FileNode[]>("scan_directory", { path: s.activeVaultPath });
+      set({ fileTree: tree });
+    } catch (e) {
+      console.error("Refresh failed:", e);
     }
   },
 

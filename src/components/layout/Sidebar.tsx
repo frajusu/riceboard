@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   FileText, Folder, FolderOpen, ChevronRight, Layers,
   Clock, GitBranch, Sparkles, Plus, FolderSearch,
+  FilePlus, FolderPlus, Pencil, Trash2, Copy, Eye,
 } from "lucide-react";
 import { useAppStore, type FileNode } from "@/stores/app-store";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -14,6 +15,7 @@ import { SnapshotTimeline } from "@/components/timeline/SnapshotTimeline";
 import { RelationGraph } from "@/components/graph/RelationGraph";
 import { invoke } from "@tauri-apps/api/core";
 import { open } from "@tauri-apps/plugin-dialog";
+import { useContextMenu } from "@/components/ui/context-menu";
 
 const pluginIcons: Record<string, React.ReactNode> = {
   hyprland: <Layers className="h-4 w-4 text-blue-400" />,
@@ -40,7 +42,7 @@ const pluginIcons: Record<string, React.ReactNode> = {
   starship: <Layers className="h-4 w-4 text-cyan-300" />,
 };
 
-function FileTreeItem({ node, depth = 0 }: { node: FileNode; depth?: number }) {
+function FileTreeItem({ node, depth = 0, onContextMenu }: { node: FileNode; depth?: number; onContextMenu: (e: React.MouseEvent, node: FileNode) => void }) {
   const [expanded, setExpanded] = useState(false);
   const { openFile } = useAppStore();
   const isDir = node.type === "directory";
@@ -51,6 +53,7 @@ function FileTreeItem({ node, depth = 0 }: { node: FileNode; depth?: number }) {
         className="w-full flex items-center gap-2 py-1 px-2 rounded-md text-sm hover:bg-accent/60 hover:text-accent-foreground transition-all duration-100 group"
         style={{ paddingLeft: `${depth * 12 + 8}px` }}
         onClick={() => { if (isDir) setExpanded(!expanded); else openFile(node); }}
+        onContextMenu={(e) => onContextMenu(e, node)}
       >
         {isDir ? (
           <motion.span animate={{ rotate: expanded ? 90 : 0 }} transition={{ duration: 0.15 }}>
@@ -69,7 +72,7 @@ function FileTreeItem({ node, depth = 0 }: { node: FileNode; depth?: number }) {
       <AnimatePresence>
         {isDir && expanded && node.children && (
           <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.15 }}>
-            {node.children.map((child) => (<FileTreeItem key={child.id} node={child} depth={depth + 1} />))}
+            {node.children.map((child) => (<FileTreeItem key={child.id} node={child} depth={depth + 1} onContextMenu={onContextMenu} />))}
           </motion.div>
         )}
       </AnimatePresence>
@@ -89,10 +92,16 @@ export function Sidebar() {
     sidebarOpen, fileTree, activeVaultPath, setActiveVaultPath,
     setFileTree, openTabs, activeTabId, sidebarWidth, setSidebarWidth,
     enabledPlugins, togglePlugin, setSetupDialogOpen, setPendingVaultPath,
+    deleteFile, renameFile, createFolder, refreshFileTree,
   } = useAppStore();
   const [activeSection, setActiveSection] = useState("files");
   const [newFileName, setNewFileName] = useState("");
   const [showNewFileInput, setShowNewFileInput] = useState(false);
+  const { showMenu, MenuPortal } = useContextMenu();
+  const [renamingPath, setRenamingPath] = useState<string | null>(null);
+  const [renamingValue, setRenamingValue] = useState("");
+  const [showNewFolderInput, setShowNewFolderInput] = useState(false);
+  const [newFolderName, setNewFolderName] = useState("");
 
   const handleOpenVault = useCallback(async () => {
     try {
@@ -115,6 +124,41 @@ export function Sidebar() {
       setShowNewFileInput(false);
     } catch (err) { console.error("Error creating file:", err); }
   }, [activeVaultPath, newFileName, setFileTree]);
+
+  const handleCreateFolder = useCallback(async () => {
+    if (!activeVaultPath || !newFolderName.trim()) return;
+    try {
+      await createFolder(newFolderName.trim());
+      setNewFolderName("");
+      setShowNewFolderInput(false);
+    } catch (err) { console.error("Error creating folder:", err); }
+  }, [activeVaultPath, newFolderName, createFolder]);
+
+  const handleFileContextMenu = useCallback((e: React.MouseEvent, node: FileNode) => {
+    const items = node.type === "file" ? [
+      { label: "Abrir", icon: <Eye className="h-4 w-4" />, shortcut: "Enter", onClick: () => useAppStore.getState().openFile(node) },
+      { divider: true, label: "" },
+      { label: "Copiar ruta", icon: <Copy className="h-4 w-4" />, shortcut: "Ctrl+Shift+C", onClick: () => navigator.clipboard.writeText(node.path) },
+      { divider: true, label: "" },
+      { label: "Renombrar", icon: <Pencil className="h-4 w-4" />, shortcut: "F2", onClick: () => { setRenamingPath(node.path); setRenamingValue(node.name); } },
+      { label: "Eliminar", icon: <Trash2 className="h-4 w-4 text-red-400" />, shortcut: "Del", danger: true, onClick: () => { if (confirm(`Eliminar "${node.name}"?`)) deleteFile(node.path); } },
+    ] : [
+      { label: "Nuevo archivo", icon: <FilePlus className="h-4 w-4" />, onClick: () => { setNewFileName(""); setShowNewFileInput(true); } },
+      { label: "Nueva carpeta", icon: <FolderPlus className="h-4 w-4" />, onClick: () => { setNewFolderName(""); setShowNewFolderInput(true); } },
+      { divider: true, label: "" },
+      { label: "Copiar ruta", icon: <Copy className="h-4 w-4" />, shortcut: "Ctrl+Shift+C", onClick: () => navigator.clipboard.writeText(node.path) },
+      { divider: true, label: "" },
+      { label: "Renombrar", icon: <Pencil className="h-4 w-4" />, shortcut: "F2", onClick: () => { setRenamingPath(node.path); setRenamingValue(node.name); } },
+      { label: "Eliminar", icon: <Trash2 className="h-4 w-4 text-red-400" />, shortcut: "Del", danger: true, onClick: () => { if (confirm(`Eliminar carpeta "${node.name}"?`)) deleteFile(node.path); } },
+    ];
+    showMenu(e, items);
+  }, [showMenu, deleteFile]);
+
+  const handleRenameSubmit = useCallback(async () => {
+    if (!renamingPath || !renamingValue.trim()) { setRenamingPath(null); return; }
+    await renameFile(renamingPath, renamingValue.trim());
+    setRenamingPath(null);
+  }, [renamingPath, renamingValue, renameFile]);
 
   if (!sidebarOpen) return null;
 
@@ -171,6 +215,16 @@ export function Sidebar() {
               </div>
             </motion.div>
           )}
+          {showNewFolderInput && (
+            <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.15 }} className="border-b overflow-hidden">
+              <div className="flex items-center gap-2 p-2">
+                <input autoFocus value={newFolderName} onChange={(e) => setNewFolderName(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === "Enter") handleCreateFolder(); if (e.key === "Escape") setShowNewFolderInput(false); }}
+                  placeholder="nombre-carpeta" className="flex-1 h-7 px-2 text-sm rounded border bg-background outline-none focus:ring-1 focus:ring-ring" />
+                <Button variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={handleCreateFolder}>Crear</Button>
+              </div>
+            </motion.div>
+          )}
         </AnimatePresence>
 
         <ScrollArea className="flex-1">
@@ -182,7 +236,7 @@ export function Sidebar() {
                     <FolderOpen className="h-3 w-3" />
                     <span className="truncate">{activeVaultPath.split(/[/\\]/).pop()}</span>
                   </div>
-                  {fileTree.length > 0 ? fileTree.map((node) => <FileTreeItem key={node.id} node={node} />) : (
+                  {fileTree.length > 0 ? fileTree.map((node) => <FileTreeItem key={node.id} node={node} onContextMenu={handleFileContextMenu} />) : (
                     <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
                       <Folder className="h-10 w-10 mb-3 opacity-30" />
                       <p className="text-sm">Vault vacio</p>
@@ -226,19 +280,7 @@ export function Sidebar() {
           {activeSection === "graph" && <RelationGraph />}
         </ScrollArea>
       </motion.aside>
-
-      <div
-        className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-primary/30 transition-colors z-10"
-        onMouseDown={(e) => {
-          e.preventDefault();
-          const startX = e.clientX;
-          const startWidth = sidebarWidth;
-          const onMouseMove = (ev: MouseEvent) => { setSidebarWidth(Math.max(180, Math.min(500, startWidth + ev.clientX - startX))); };
-          const onMouseUp = () => { window.removeEventListener("mousemove", onMouseMove); window.removeEventListener("mouseup", onMouseUp); };
-          window.addEventListener("mousemove", onMouseMove);
-          window.addEventListener("mouseup", onMouseUp);
-        }}
-      />
+      {MenuPortal}
     </div>
   );
 }

@@ -204,7 +204,7 @@ export default function App() {
 
   return (
     <TooltipProvider delayDuration={300}>
-      <div className="h-screen flex flex-col overflow-hidden">
+      <div className="h-screen flex flex-col overflow-hidden" onContextMenu={(e) => e.preventDefault()}>
         <TitleBar />
         <div className="flex-1 flex min-h-0">
           <Sidebar />
