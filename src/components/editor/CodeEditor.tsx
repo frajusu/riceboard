@@ -1,11 +1,12 @@
 import React, { useState, useRef, useCallback, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Save, Circle } from "lucide-react";
+import { X, Save, Circle, Scissors, Copy, ClipboardPaste, Undo2, Redo2, CheckSquare } from "lucide-react";
 import { useAppStore } from "@/stores/app-store";
 import { Button } from "@/components/ui/button";
 import {
   Tooltip, TooltipContent, TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { useContextMenu } from "@/components/ui/context-menu";
 
 const editorFontFamily = "'JetBrainsMono Nerd Font', 'Fira Code', 'Cascadia Code', 'Consolas', monospace";
 const editorFontSize = 13;
@@ -132,6 +133,7 @@ export function CodeEditor() {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const highlightRef = useRef<HTMLDivElement>(null);
   const lineNumRef = useRef<HTMLDivElement>(null);
+  const { showMenu, MenuPortal } = useContextMenu();
 
   const activeTab = openTabs.find((t) => t.id === activeTabId);
 
@@ -188,6 +190,24 @@ export function CodeEditor() {
     );
   }
 
+  const handleContextMenu = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const ta = textareaRef.current;
+    const hasSelection = ta && ta.selectionStart !== ta.selectionEnd;
+    const items = [
+      { label: "Deshacer", icon: <Undo2 className="h-4 w-4" />, shortcut: "Ctrl+Z", onClick: () => document.execCommand("undo") },
+      { label: "Rehacer", icon: <Redo2 className="h-4 w-4" />, shortcut: "Ctrl+Y", onClick: () => document.execCommand("redo") },
+      { divider: true, label: "" },
+      { label: "Cortar", icon: <Scissors className="h-4 w-4" />, shortcut: "Ctrl+X", disabled: !hasSelection, onClick: () => { ta?.focus(); document.execCommand("cut"); } },
+      { label: "Copiar", icon: <Copy className="h-4 w-4" />, shortcut: "Ctrl+C", disabled: !hasSelection, onClick: () => { ta?.focus(); document.execCommand("copy"); } },
+      { label: "Pegar", icon: <ClipboardPaste className="h-4 w-4" />, shortcut: "Ctrl+V", onClick: () => { ta?.focus(); document.execCommand("paste"); } },
+      { divider: true, label: "" },
+      { label: "Seleccionar todo", icon: <CheckSquare className="h-4 w-4" />, shortcut: "Ctrl+A", onClick: () => { ta?.focus(); ta?.select(); } },
+    ];
+    showMenu(e, items);
+  }, [showMenu]);
+
   const lines = activeTab.content.split("\n");
   const lineCount = lines.length;
   const highlighted = highlightSyntax(activeTab.content, activeTab.name);
@@ -219,6 +239,7 @@ export function CodeEditor() {
           ref={textareaRef}
           value={activeTab.content}
           onChange={(e) => updateTabContent(activeTab.id, e.target.value)}
+          onContextMenu={handleContextMenu}
           className="absolute inset-0 w-full h-full resize-none outline-none"
           style={{
             fontFamily: editorFontFamily,
@@ -289,6 +310,7 @@ export function CodeEditor() {
           <span>{activeTab.modified ? "Modificado" : "Guardado"}</span>
         </div>
       </div>
+      {MenuPortal}
     </div>
   );
 }
