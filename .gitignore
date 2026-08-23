@@ -26,8 +26,3 @@ desktop.ini
 # Logs
 *.log
 npm-debug.log*
-
-# Tauri
-src-tauri/icons/*.ico
-src-tauri/icons/*.png
-!src-tauri/icons/icon.png
