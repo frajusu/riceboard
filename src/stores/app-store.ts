@@ -1,0 +1,277 @@
+import { create } from "zustand";
+import { invoke } from "@tauri-apps/api/core";
+
+export interface FileNode {
+  id: string;
+  name: string;
+  path: string;
+  type: "file" | "directory";
+  children?: FileNode[];
+  plugin?: string;
+  content?: string;
+  modified?: boolean;
+}
+
+export interface OpenTab {
+  id: string;
+  name: string;
+  path: string;
+  content: string;
+  modified: boolean;
+}
+
+export interface Snapshot {
+  id: string;
+  timestamp: number;
+  files: { path: string; content: string }[];
+  description?: string;
+}
+
+function saveVault(path: string | null) {
+  if (path) localStorage.setItem("riceboard:vault", path);
+  else localStorage.removeItem("riceboard:vault");
+}
+
+function loadVault(): string | null {
+  return localStorage.getItem("riceboard:vault");
+}
+
+function saveTabs(tabs: OpenTab[]) {
+  const minimal = tabs.map((t) => ({ id: t.id, name: t.name, path: t.path }));
+  localStorage.setItem("riceboard:tabs", JSON.stringify(minimal));
+}
+
+function loadTabs(): { id: string; name: string; path: string }[] {
+  try {
+    return JSON.parse(localStorage.getItem("riceboard:tabs") || "[]");
+  } catch {
+    return [];
+  }
+}
+
+function saveEnabledPlugins(p: Record<string, boolean>) {
+  localStorage.setItem("riceboard:plugins", JSON.stringify(p));
+}
+
+function loadEnabledPlugins(): Record<string, boolean> | null {
+  try {
+    return JSON.parse(localStorage.getItem("riceboard:plugins") || "null");
+  } catch {
+    return null;
+  }
+}
+
+function saveLayout(sidebarWidth: number, previewWidth: number, previewOpen: boolean) {
+  localStorage.setItem("riceboard:layout", JSON.stringify({ sidebarWidth, previewWidth, previewOpen }));
+}
+
+function loadLayout(): { sidebarWidth?: number; previewWidth?: number; previewOpen?: boolean } {
+  try {
+    return JSON.parse(localStorage.getItem("riceboard:layout") || "{}");
+  } catch {
+    return {};
+  }
+}
+
+const defaultPlugins: Record<string, boolean> = {
+  hyprland: true, waybar: true, kitty: true, rofi: true,
+  neovim: true, zsh: true, mako: true, swww: true,
+  tmux: true, btop: true, dunst: false, alacritty: false,
+  ghostty: false, fish: false, bash: false, wofi: false,
+  hyprpaper: false, eww: false, hyprlock: false, cava: false,
+  starship: false,
+};
+
+const savedLayout = loadLayout();
+
+interface AppState {
+  sidebarOpen: boolean;
+  toggleSidebar: () => void;
+  sidebarWidth: number;
+  setSidebarWidth: (w: number) => void;
+
+  previewWidth: number;
+  setPreviewWidth: (w: number) => void;
+  previewOpen: boolean;
+  togglePreview: () => void;
+
+  activeVaultPath: string | null;
+  setActiveVaultPath: (path: string | null) => void;
+
+  fileTree: FileNode[];
+  setFileTree: (tree: FileNode[]) => void;
+
+  openTabs: OpenTab[];
+  activeTabId: string | null;
+  openFile: (file: FileNode) => Promise<void>;
+  closeTab: (id: string) => void;
+  setActiveTab: (id: string) => void;
+  updateTabContent: (id: string, content: string) => void;
+  saveCurrentFile: () => Promise<void>;
+
+  snapshots: Snapshot[];
+  addSnapshot: (snapshot: Snapshot) => void;
+
+  commandPaletteOpen: boolean;
+  toggleCommandPalette: () => void;
+
+  enabledPlugins: Record<string, boolean>;
+  togglePlugin: (name: string) => void;
+
+  setupDialogOpen: boolean;
+  setSetupDialogOpen: (open: boolean) => void;
+  pendingVaultPath: string | null;
+  setPendingVaultPath: (path: string | null) => void;
+
+  restoreSession: () => Promise<void>;
+}
+
+export const useAppStore = create<AppState>((set, get) => ({
+  sidebarOpen: true,
+  toggleSidebar: () => set((s) => ({ sidebarOpen: !s.sidebarOpen })),
+  sidebarWidth: savedLayout.sidebarWidth ?? 250,
+  setSidebarWidth: (w) => {
+    set({ sidebarWidth: w });
+    const s = get();
+    saveLayout(w, s.previewWidth, s.previewOpen);
+  },
+
+  previewWidth: savedLayout.previewWidth ?? 300,
+  setPreviewWidth: (w) => {
+    set({ previewWidth: w });
+    const s = get();
+    saveLayout(s.sidebarWidth, w, s.previewOpen);
+  },
+  previewOpen: savedLayout.previewOpen ?? true,
+  togglePreview: () => {
+    set((s) => {
+      const next = !s.previewOpen;
+      saveLayout(s.sidebarWidth, s.previewWidth, next);
+      return { previewOpen: next };
+    });
+  },
+
+  activeVaultPath: null,
+  setActiveVaultPath: (path) => {
+    set({ activeVaultPath: path });
+    saveVault(path);
+  },
+
+  fileTree: [],
+  setFileTree: (tree) => set({ fileTree: tree }),
+
+  openTabs: [],
+  activeTabId: null,
+  openFile: async (file) => {
+    const s = get();
+    const exists = s.openTabs.find((t) => t.path === file.path);
+    if (exists) {
+      set({ activeTabId: exists.id });
+      return;
+    }
+    let content = "";
+    try {
+      content = await invoke<string>("read_file", { path: file.path });
+    } catch (e) {
+      content = `// Error loading ${file.name}: ${e}`;
+    }
+    const tab: OpenTab = {
+      id: file.id,
+      name: file.name,
+      path: file.path,
+      content,
+      modified: false,
+    };
+    const nextTabs = [...s.openTabs, tab];
+    set({ openTabs: nextTabs, activeTabId: tab.id });
+    saveTabs(nextTabs);
+  },
+  closeTab: (id) =>
+    set((s) => {
+      const tabs = s.openTabs.filter((t) => t.id !== id);
+      const activeTabId =
+        s.activeTabId === id
+          ? tabs.length > 0 ? tabs[tabs.length - 1].id : null
+          : s.activeTabId;
+      saveTabs(tabs);
+      return { openTabs: tabs, activeTabId };
+    }),
+  setActiveTab: (id) => set({ activeTabId: id }),
+  updateTabContent: (id, content) =>
+    set((s) => ({
+      openTabs: s.openTabs.map((t) =>
+        t.id === id ? { ...t, content, modified: true } : t
+      ),
+    })),
+  saveCurrentFile: async () => {
+    const s = get();
+    const tab = s.openTabs.find((t) => t.id === s.activeTabId);
+    if (!tab) return;
+    try {
+      await invoke("write_file", { path: tab.path, content: tab.content });
+      set({
+        openTabs: s.openTabs.map((t) =>
+          t.id === tab.id ? { ...t, modified: false } : t
+        ),
+      });
+    } catch (e) {
+      console.error("Save failed:", e);
+    }
+  },
+
+  snapshots: [],
+  addSnapshot: (snapshot) =>
+    set((s) => ({ snapshots: [...s.snapshots, snapshot] })),
+
+  commandPaletteOpen: false,
+  toggleCommandPalette: () =>
+    set((s) => ({ commandPaletteOpen: !s.commandPaletteOpen })),
+
+  enabledPlugins: loadEnabledPlugins() ?? defaultPlugins,
+  togglePlugin: (name) =>
+    set((s) => {
+      const next = {
+        ...s.enabledPlugins,
+        [name]: !s.enabledPlugins[name],
+      };
+      saveEnabledPlugins(next);
+      return { enabledPlugins: next };
+    }),
+
+  setupDialogOpen: false,
+  setSetupDialogOpen: (open) => set({ setupDialogOpen: open }),
+  pendingVaultPath: null,
+  setPendingVaultPath: (path) => set({ pendingVaultPath: path }),
+
+  restoreSession: async () => {
+    const vault = loadVault();
+    if (vault) {
+      try {
+        set({ activeVaultPath: vault });
+        const tree = await invoke<FileNode[]>("scan_directory", { path: vault });
+        set({ fileTree: tree });
+
+        const savedTabs = loadTabs();
+        if (savedTabs.length > 0) {
+          const restoredTabs: OpenTab[] = [];
+          for (const st of savedTabs) {
+            try {
+              const content = await invoke<string>("read_file", { path: st.path });
+              restoredTabs.push({ ...st, content, modified: false });
+            } catch {
+              // file gone, skip
+            }
+          }
+          if (restoredTabs.length > 0) {
+            set({
+              openTabs: restoredTabs,
+              activeTabId: restoredTabs[restoredTabs.length - 1].id,
+            });
+          }
+        }
+      } catch {
+        localStorage.removeItem("riceboard:vault");
+      }
+    }
+  },
+}));
