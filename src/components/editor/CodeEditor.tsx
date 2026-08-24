@@ -1489,7 +1489,7 @@ export function CodeEditor() {
           value={activeTab.content}
           onChange={(e) => updateTabContent(activeTab.id, e.target.value)}
           onContextMenu={handleContextMenu}
-          className="absolute inset-0 w-full h-full resize-none outline-none"
+          className="absolute inset-0 w-full h-full resize-none outline-none border-none m-0"
           style={{
             fontFamily: editorFontFamily,
             fontSize: editorFontSize,
@@ -1504,6 +1504,10 @@ export function CodeEditor() {
             overflowY: "auto",
             tabSize: 4,
             zIndex: 3,
+            letterSpacing: "normal",
+            wordSpacing: "normal",
+            textIndent: "0",
+            textTransform: "none",
           }}
           spellCheck={false}
           autoComplete="off"
@@ -1513,7 +1517,7 @@ export function CodeEditor() {
         {/* Highlighted code (scrolls with textarea via JS) */}
         <div
           ref={highlightRef}
-          className="absolute inset-0 pointer-events-none whitespace-pre overflow-hidden"
+          className="absolute inset-0 pointer-events-none whitespace-pre overflow-hidden border-none m-0"
           style={{
             fontFamily: editorFontFamily,
             fontSize: editorFontSize,
@@ -1521,6 +1525,10 @@ export function CodeEditor() {
             padding: `${editorPadding}px ${editorPadding}px ${editorPadding}px ${lineNumWidth + editorPadding}px`,
             tabSize: 4,
             zIndex: 1,
+            letterSpacing: "normal",
+            wordSpacing: "normal",
+            textIndent: "0",
+            textTransform: "none",
           }}
           aria-hidden="true"
         >
@@ -1539,7 +1547,7 @@ export function CodeEditor() {
             paddingTop: editorPadding,
             paddingBottom: editorPadding,
             paddingRight: 8,
-            zIndex: 2,
+            zIndex: 4,
           }}
         >
           {Array.from({ length: lineCount }, (_, i) => {

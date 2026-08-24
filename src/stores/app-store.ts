@@ -471,6 +471,13 @@ export const useAppStore = create<AppState>((set, get) => ({
         localStorage.removeItem("riceboard:vault");
       }
     }
+    // Check OS
+    try {
+      const result = await invoke<boolean>("is_linux");
+      set({ isLinux: result });
+    } catch {
+      set({ isLinux: false });
+    }
   },
 
   backgroundPattern: loadBackground().pattern ?? "none",
