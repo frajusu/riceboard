@@ -20,9 +20,10 @@ interface ContextMenuProps {
   x: number;
   y: number;
   onClose: () => void;
+  savedRange?: Range | null;
 }
 
-export function ContextMenu({ items, x, y, onClose }: ContextMenuProps) {
+export function ContextMenu({ items, x, y, onClose, savedRange }: ContextMenuProps) {
   const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -34,13 +35,21 @@ export function ContextMenu({ items, x, y, onClose }: ContextMenuProps) {
     const handleEscape = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();
     };
-    document.addEventListener("mousedown", handleClick);
+    document.addEventListener("mousedown", handleClick, true);
     document.addEventListener("keydown", handleEscape);
     return () => {
-      document.removeEventListener("mousedown", handleClick);
+      document.removeEventListener("mousedown", handleClick, true);
       document.removeEventListener("keydown", handleEscape);
     };
   }, [onClose]);
+
+  const restoreSelection = useCallback(() => {
+    if (savedRange) {
+      const sel = window.getSelection();
+      sel?.removeAllRanges();
+      sel?.addRange(savedRange);
+    }
+  }, [savedRange]);
 
   useEffect(() => {
     if (menuRef.current) {
@@ -76,9 +85,18 @@ export function ContextMenu({ items, x, y, onClose }: ContextMenuProps) {
             <button
               key={i}
               disabled={item.disabled}
+              onMouseDown={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+              }}
               onClick={() => {
-                item.onClick?.();
+                const action = item.onClick;
                 onClose();
+                // Restore selection after menu unmounts so it persists
+                setTimeout(() => {
+                  restoreSelection();
+                  action?.();
+                }, 0);
               }}
               className={`w-full flex items-center gap-2.5 px-3 py-1.5 text-sm transition-colors duration-75
                 ${item.danger
@@ -100,18 +118,27 @@ export function ContextMenu({ items, x, y, onClose }: ContextMenuProps) {
 }
 
 export function useContextMenu() {
-  const [menu, setMenu] = React.useState<{ items: ContextMenuItem[]; x: number; y: number } | null>(null);
+  const [menu, setMenu] = React.useState<{ items: ContextMenuItem[]; x: number; y: number; savedRange: Range | null } | null>(null);
 
   const showMenu = useCallback((e: React.MouseEvent, items: ContextMenuItem[]) => {
     e.preventDefault();
     e.stopPropagation();
-    setMenu({ items, x: e.clientX, y: e.clientY });
+    // Save current selection before menu appears
+    const sel = window.getSelection();
+    const savedRange = sel && sel.rangeCount > 0 ? sel.getRangeAt(0).cloneRange() : null;
+    setMenu({ items, x: e.clientX, y: e.clientY, savedRange });
   }, []);
 
   const closeMenu = useCallback(() => setMenu(null), []);
 
   const MenuPortal = menu ? (
-    <ContextMenu items={menu.items} x={menu.x} y={menu.y} onClose={closeMenu} />
+    <ContextMenu
+      items={menu.items}
+      x={menu.x}
+      y={menu.y}
+      onClose={closeMenu}
+      savedRange={menu.savedRange}
+    />
   ) : null;
 
   return { showMenu, closeMenu, MenuPortal };

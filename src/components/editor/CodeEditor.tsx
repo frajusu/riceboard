@@ -1368,11 +1368,15 @@ export function CodeEditor() {
   const updateTabContent = useAppStore((s) => s.updateTabContent);
   const closeTab = useAppStore((s) => s.closeTab);
   const setActiveTab = useAppStore((s) => s.setActiveTab);
+  const reorderOpenTabs = useAppStore((s) => s.reorderOpenTabs);
   const saveCurrentFile = useAppStore((s) => s.saveCurrentFile);
   const containerRef = useRef<HTMLDivElement>(null);
   const preRef = useRef<HTMLPreElement>(null);
   const lineNumRef = useRef<HTMLDivElement>(null);
   const { showMenu, MenuPortal } = useContextMenu();
+  const dragIndexRef = useRef<number | null>(null);
+  const dragOverIndexRef = useRef<number | null>(null);
+  const [dragOverIdx, setDragOverIdx] = useState<number | null>(null);
   const [errors, setErrors] = useState<ConfigError[]>([]);
   const [problemsOpen, setProblemsOpen] = useState(false);
   const [hoveredLine, setHoveredLine] = useState<number | null>(null);
@@ -1520,13 +1524,28 @@ export function CodeEditor() {
     const el = preRef.current;
     const sel = window.getSelection();
     const hasSelection = sel && !sel.isCollapsed;
+    const selectedText = hasSelection ? sel!.toString() : "";
     const items = [
       { label: t("editor.contextMenu.undo"), icon: <Undo2 className="h-4 w-4" />, shortcut: "Ctrl+Z", onClick: () => { el?.focus(); document.execCommand("undo"); } },
       { label: t("editor.contextMenu.redo"), icon: <Redo2 className="h-4 w-4" />, shortcut: "Ctrl+Y", onClick: () => { el?.focus(); document.execCommand("redo"); } },
       { divider: true, label: "" },
-      { label: t("editor.contextMenu.cut"), icon: <Scissors className="h-4 w-4" />, shortcut: "Ctrl+X", disabled: !hasSelection, onClick: () => { el?.focus(); document.execCommand("cut"); } },
-      { label: t("editor.contextMenu.copy"), icon: <Copy className="h-4 w-4" />, shortcut: "Ctrl+C", disabled: !hasSelection, onClick: () => { el?.focus(); document.execCommand("copy"); } },
-      { label: t("editor.contextMenu.paste"), icon: <ClipboardPaste className="h-4 w-4" />, shortcut: "Ctrl+V", onClick: () => { el?.focus(); document.execCommand("paste"); } },
+      { label: t("editor.contextMenu.cut"), icon: <Scissors className="h-4 w-4" />, shortcut: "Ctrl+X", disabled: !hasSelection, onClick: () => {
+        if (selectedText) {
+          navigator.clipboard.writeText(selectedText).then(() => {
+            el?.focus();
+            document.execCommand("delete");
+          });
+        }
+      }},
+      { label: t("editor.contextMenu.copy"), icon: <Copy className="h-4 w-4" />, shortcut: "Ctrl+C", disabled: !hasSelection, onClick: () => {
+        if (selectedText) navigator.clipboard.writeText(selectedText);
+      }},
+      { label: t("editor.contextMenu.paste"), icon: <ClipboardPaste className="h-4 w-4" />, shortcut: "Ctrl+V", onClick: () => {
+        el?.focus();
+        navigator.clipboard.readText().then(text => {
+          document.execCommand("insertText", false, text);
+        });
+      }},
       { divider: true, label: "" },
       { label: t("editor.contextMenu.selectAll"), icon: <CheckSquare className="h-4 w-4" />, shortcut: "Ctrl+A", onClick: () => { el?.focus(); document.execCommand("selectAll"); } },
     ];
@@ -1555,12 +1574,51 @@ export function CodeEditor() {
   return (
     <div className="flex-1 flex flex-col min-h-0">
       {/* Tab bar */}
-      <div className="flex items-center border-b bg-card/50 overflow-x-auto shrink-0" style={{ minHeight: 36 }}>
-        {openTabs.map((tab) => {
+      <div className="flex items-stretch border-b bg-card/50 overflow-x-auto shrink-0" style={{ minHeight: 40 }}>
+        {openTabs.map((tab, idx) => {
           const tabLang = detectLanguage(tab.name, tab.path);
+          const isActive = tab.id === activeTabId;
+          const isDragOver = dragOverIdx === idx;
           return (
             <div key={tab.id}
-              className={`flex items-center gap-1.5 px-3 py-2 border-r cursor-pointer text-sm whitespace-nowrap group transition-colors ${tab.id === activeTabId ? "bg-background text-foreground" : "text-muted-foreground hover:bg-accent/50 hover:text-foreground"}`}
+              draggable
+              onDragStart={(e) => {
+                dragIndexRef.current = idx;
+                e.dataTransfer.effectAllowed = "move";
+                e.dataTransfer.setData("text/plain", String(idx));
+              }}
+              onDragOver={(e) => {
+                e.preventDefault();
+                e.dataTransfer.dropEffect = "move";
+                dragOverIndexRef.current = idx;
+                setDragOverIdx(idx);
+              }}
+              onDragLeave={() => {
+                dragOverIndexRef.current = null;
+                setDragOverIdx(null);
+              }}
+              onDrop={(e) => {
+                e.preventDefault();
+                const from = dragIndexRef.current;
+                const to = dragOverIndexRef.current;
+                if (from !== null && to !== null && from !== to) {
+                  reorderOpenTabs(from, to);
+                }
+                dragIndexRef.current = null;
+                dragOverIndexRef.current = null;
+                setDragOverIdx(null);
+              }}
+              onDragEnd={() => {
+                dragIndexRef.current = null;
+                dragOverIndexRef.current = null;
+                setDragOverIdx(null);
+              }}
+              className={`flex items-center gap-1.5 px-3 border-r cursor-pointer text-sm whitespace-nowrap group transition-colors select-none
+                ${isActive
+                  ? "bg-background text-foreground border-b-2 border-b-primary"
+                  : "text-muted-foreground/70 bg-card/30 hover:bg-accent/40 hover:text-foreground/80"
+                } ${isDragOver && !isActive ? "border-l-2 border-l-primary" : ""}`}
+              style={{ paddingTop: 8, paddingBottom: 8 }}
               onClick={() => setActiveTab(tab.id)}>
               {tab.modified ? <Circle className="h-2 w-2 fill-orange-400 text-orange-400 shrink-0" /> : null}
               {getTabIcon(tabLang)}

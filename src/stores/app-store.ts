@@ -121,6 +121,7 @@ interface AppState {
   openFile: (file: FileNode) => Promise<void>;
   closeTab: (id: string) => void;
   setActiveTab: (id: string) => void;
+  reorderOpenTabs: (fromIndex: number, toIndex: number) => void;
   updateTabContent: (id: string, content: string) => void;
   saveCurrentFile: () => Promise<void>;
   deleteFile: (path: string) => Promise<void>;
@@ -248,6 +249,14 @@ export const useAppStore = create<AppState>((set, get) => ({
       return { openTabs: tabs, activeTabId };
     }),
   setActiveTab: (id) => set({ activeTabId: id }),
+  reorderOpenTabs: (fromIndex, toIndex) =>
+    set((s) => {
+      const tabs = [...s.openTabs];
+      const [moved] = tabs.splice(fromIndex, 1);
+      tabs.splice(toIndex, 0, moved);
+      saveTabs(tabs);
+      return { openTabs: tabs };
+    }),
   updateTabContent: (id, content) =>
     set((s) => ({
       openTabs: s.openTabs.map((t) =>
