@@ -1438,15 +1438,36 @@ export function CodeEditor() {
     return map;
   }, [errors]);
 
+  const getTextFromPre = useCallback((el: HTMLElement): string => {
+    let text = "";
+    const walk = (node: Node) => {
+      if (node.nodeType === Node.TEXT_NODE) {
+        text += node.textContent || "";
+      } else if (node.nodeType === Node.ELEMENT_NODE) {
+        const tag = (node as HTMLElement).tagName;
+        if (tag === "BR") {
+          text += "\n";
+        } else {
+          for (const child of Array.from(node.childNodes)) walk(child);
+          if (tag === "DIV" || tag === "P") {
+            if (text[text.length - 1] !== "\n") text += "\n";
+          }
+        }
+      }
+    };
+    for (const child of Array.from(el.childNodes)) walk(child);
+    return text;
+  }, []);
+
   const handleInput = useCallback(() => {
     const el = preRef.current;
     if (!el || !activeTab) return;
     if (syncingRef.current) return;
-    const text = el.textContent || "";
+    const text = getTextFromPre(el);
     syncingRef.current = true;
     updateTabContent(activeTab.id, text);
     requestAnimationFrame(() => { syncingRef.current = false; });
-  }, [activeTab?.id, updateTabContent]);
+  }, [activeTab?.id, updateTabContent, getTextFromPre]);
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
     if ((e.ctrlKey || e.metaKey) && e.key === "s") {
@@ -1524,28 +1545,13 @@ export function CodeEditor() {
     const el = preRef.current;
     const sel = window.getSelection();
     const hasSelection = sel && !sel.isCollapsed;
-    const selectedText = hasSelection ? sel!.toString() : "";
     const items = [
       { label: t("editor.contextMenu.undo"), icon: <Undo2 className="h-4 w-4" />, shortcut: "Ctrl+Z", onClick: () => { el?.focus(); document.execCommand("undo"); } },
       { label: t("editor.contextMenu.redo"), icon: <Redo2 className="h-4 w-4" />, shortcut: "Ctrl+Y", onClick: () => { el?.focus(); document.execCommand("redo"); } },
       { divider: true, label: "" },
-      { label: t("editor.contextMenu.cut"), icon: <Scissors className="h-4 w-4" />, shortcut: "Ctrl+X", disabled: !hasSelection, onClick: () => {
-        if (selectedText) {
-          navigator.clipboard.writeText(selectedText).then(() => {
-            el?.focus();
-            document.execCommand("delete");
-          });
-        }
-      }},
-      { label: t("editor.contextMenu.copy"), icon: <Copy className="h-4 w-4" />, shortcut: "Ctrl+C", disabled: !hasSelection, onClick: () => {
-        if (selectedText) navigator.clipboard.writeText(selectedText);
-      }},
-      { label: t("editor.contextMenu.paste"), icon: <ClipboardPaste className="h-4 w-4" />, shortcut: "Ctrl+V", onClick: () => {
-        el?.focus();
-        navigator.clipboard.readText().then(text => {
-          document.execCommand("insertText", false, text);
-        });
-      }},
+      { label: t("editor.contextMenu.cut"), icon: <Scissors className="h-4 w-4" />, shortcut: "Ctrl+X", disabled: !hasSelection, onClick: () => { el?.focus(); document.execCommand("cut"); } },
+      { label: t("editor.contextMenu.copy"), icon: <Copy className="h-4 w-4" />, shortcut: "Ctrl+C", disabled: !hasSelection, onClick: () => { el?.focus(); document.execCommand("copy"); } },
+      { label: t("editor.contextMenu.paste"), icon: <ClipboardPaste className="h-4 w-4" />, shortcut: "Ctrl+V", onClick: () => { el?.focus(); document.execCommand("paste"); } },
       { divider: true, label: "" },
       { label: t("editor.contextMenu.selectAll"), icon: <CheckSquare className="h-4 w-4" />, shortcut: "Ctrl+A", onClick: () => { el?.focus(); document.execCommand("selectAll"); } },
     ];
@@ -1581,11 +1587,18 @@ export function CodeEditor() {
           const isDragOver = dragOverIdx === idx;
           return (
             <div key={tab.id}
-              draggable
+              draggable="true"
               onDragStart={(e) => {
-                dragIndexRef.current = idx;
                 e.dataTransfer.effectAllowed = "move";
                 e.dataTransfer.setData("text/plain", String(idx));
+                dragIndexRef.current = idx;
+                // Create a small drag image
+                const ghost = document.createElement("div");
+                ghost.textContent = tab.name;
+                ghost.style.cssText = "position:absolute;top:-1000px;left:-1000px;padding:4px 8px;background:#1e1e2e;color:#cdd6f4;border-radius:6px;font-size:12px;pointer-events:none;";
+                document.body.appendChild(ghost);
+                e.dataTransfer.setDragImage(ghost, 0, 0);
+                requestAnimationFrame(() => ghost.remove());
               }}
               onDragOver={(e) => {
                 e.preventDefault();
@@ -1613,12 +1626,11 @@ export function CodeEditor() {
                 dragOverIndexRef.current = null;
                 setDragOverIdx(null);
               }}
-              className={`flex items-center gap-1.5 px-3 border-r cursor-pointer text-sm whitespace-nowrap group transition-colors select-none
+              className={`flex items-center gap-1.5 px-3 py-2 border-r cursor-pointer text-sm whitespace-nowrap group transition-colors select-none
                 ${isActive
                   ? "bg-background text-foreground border-b-2 border-b-primary"
                   : "text-muted-foreground/70 bg-card/30 hover:bg-accent/40 hover:text-foreground/80"
                 } ${isDragOver && !isActive ? "border-l-2 border-l-primary" : ""}`}
-              style={{ paddingTop: 8, paddingBottom: 8 }}
               onClick={() => setActiveTab(tab.id)}>
               {tab.modified ? <Circle className="h-2 w-2 fill-orange-400 text-orange-400 shrink-0" /> : null}
               {getTabIcon(tabLang)}

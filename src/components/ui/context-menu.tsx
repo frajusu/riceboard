@@ -21,9 +21,10 @@ interface ContextMenuProps {
   y: number;
   onClose: () => void;
   savedRange?: Range | null;
+  focusEl?: HTMLElement | null;
 }
 
-export function ContextMenu({ items, x, y, onClose, savedRange }: ContextMenuProps) {
+export function ContextMenu({ items, x, y, onClose, savedRange, focusEl }: ContextMenuProps) {
   const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -44,12 +45,13 @@ export function ContextMenu({ items, x, y, onClose, savedRange }: ContextMenuPro
   }, [onClose]);
 
   const restoreSelection = useCallback(() => {
+    if (focusEl) focusEl.focus();
     if (savedRange) {
       const sel = window.getSelection();
       sel?.removeAllRanges();
       sel?.addRange(savedRange);
     }
-  }, [savedRange]);
+  }, [savedRange, focusEl]);
 
   useEffect(() => {
     if (menuRef.current) {
@@ -92,11 +94,10 @@ export function ContextMenu({ items, x, y, onClose, savedRange }: ContextMenuPro
               onClick={() => {
                 const action = item.onClick;
                 onClose();
-                // Restore selection after menu unmounts so it persists
                 setTimeout(() => {
                   restoreSelection();
                   action?.();
-                }, 0);
+                }, 10);
               }}
               className={`w-full flex items-center gap-2.5 px-3 py-1.5 text-sm transition-colors duration-75
                 ${item.danger
@@ -118,15 +119,14 @@ export function ContextMenu({ items, x, y, onClose, savedRange }: ContextMenuPro
 }
 
 export function useContextMenu() {
-  const [menu, setMenu] = React.useState<{ items: ContextMenuItem[]; x: number; y: number; savedRange: Range | null } | null>(null);
+  const [menu, setMenu] = React.useState<{ items: ContextMenuItem[]; x: number; y: number; savedRange: Range | null; focusEl: HTMLElement | null } | null>(null);
 
   const showMenu = useCallback((e: React.MouseEvent, items: ContextMenuItem[]) => {
     e.preventDefault();
     e.stopPropagation();
-    // Save current selection before menu appears
     const sel = window.getSelection();
     const savedRange = sel && sel.rangeCount > 0 ? sel.getRangeAt(0).cloneRange() : null;
-    setMenu({ items, x: e.clientX, y: e.clientY, savedRange });
+    setMenu({ items, x: e.clientX, y: e.clientY, savedRange, focusEl: document.activeElement as HTMLElement });
   }, []);
 
   const closeMenu = useCallback(() => setMenu(null), []);
@@ -138,6 +138,7 @@ export function useContextMenu() {
       y={menu.y}
       onClose={closeMenu}
       savedRange={menu.savedRange}
+      focusEl={menu.focusEl}
     />
   ) : null;
 
