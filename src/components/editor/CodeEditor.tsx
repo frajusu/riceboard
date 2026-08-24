@@ -199,6 +199,16 @@ export function CodeEditor() {
     return () => { if (errorTimerRef.current) clearTimeout(errorTimerRef.current); };
   }, [activeTab?.content, activeTab?.name]);
 
+  const errorLines = useMemo(() => {
+    const map = new Map<number, ConfigError[]>();
+    for (const err of errors) {
+      const existing = map.get(err.line) || [];
+      existing.push(err);
+      map.set(err.line, existing);
+    }
+    return map;
+  }, [errors]);
+
   const handleContextMenu = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -236,16 +246,6 @@ export function CodeEditor() {
   const lineCount = lines.length;
   const highlighted = highlightSyntax(activeTab.content, activeTab.name);
   const lineNumWidth = Math.max(40, String(lineCount).length * 9 + 24);
-
-  const errorLines = useMemo(() => {
-    const map = new Map<number, ConfigError[]>();
-    for (const err of errors) {
-      const existing = map.get(err.line) || [];
-      existing.push(err);
-      map.set(err.line, existing);
-    }
-    return map;
-  }, [errors]);
 
   return (
     <div className="flex-1 flex flex-col min-h-0">
