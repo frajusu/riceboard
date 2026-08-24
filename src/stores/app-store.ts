@@ -74,6 +74,18 @@ function loadLayout(): { sidebarWidth?: number; previewWidth?: number; previewOp
   }
 }
 
+function saveBackground(pattern: string, opacity: number) {
+  localStorage.setItem("riceboard:background", JSON.stringify({ pattern, opacity }));
+}
+
+function loadBackground(): { pattern?: string; opacity?: number } {
+  try {
+    return JSON.parse(localStorage.getItem("riceboard:background") || "{}");
+  } catch {
+    return {};
+  }
+}
+
 const defaultPlugins: Record<string, boolean> = {
   hyprland: true, waybar: true, kitty: true, rofi: true,
   neovim: true, zsh: true, mako: true, swww: true,
@@ -159,6 +171,11 @@ interface AppState {
   stopLivePreview: (plugin: string) => Promise<string>;
 
   restoreSession: () => Promise<void>;
+
+  backgroundPattern: string;
+  backgroundOpacity: number;
+  setBackgroundPattern: (pattern: string) => void;
+  setBackgroundOpacity: (opacity: number) => void;
 }
 
 export const useAppStore = create<AppState>((set, get) => ({
@@ -454,5 +471,18 @@ export const useAppStore = create<AppState>((set, get) => ({
         localStorage.removeItem("riceboard:vault");
       }
     }
+  },
+
+  backgroundPattern: loadBackground().pattern ?? "none",
+  backgroundOpacity: loadBackground().opacity ?? 50,
+  setBackgroundPattern: (pattern) => {
+    set({ backgroundPattern: pattern });
+    const s = get();
+    saveBackground(pattern, s.backgroundOpacity);
+  },
+  setBackgroundOpacity: (opacity) => {
+    set({ backgroundOpacity: opacity });
+    const s = get();
+    saveBackground(s.backgroundPattern, opacity);
   },
 }));

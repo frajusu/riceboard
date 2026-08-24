@@ -9,12 +9,26 @@ import { useContextMenu } from "@/components/ui/context-menu";
 import { t } from "@/lib/i18n";
 import { validateConfig, type ConfigError } from "@/lib/config-validator";
 
+function getPluginColor(plugin: string): string {
+  const colors: Record<string, string> = {
+    hyprland: "#60a5fa", waybar: "#4ade80", kitty: "#c084fc", alacritty: "#f87171",
+    ghostty: "#f472b6", foot: "#2dd4bf", neovim: "#34d399", nvim: "#34d399",
+    zsh: "#facc15", fish: "#22d3ee", bash: "#fb923c", rofi: "#fb923c",
+    wofi: "#f472b6", fuzzel: "#fbbf24", swww: "#818cf8", hyprpaper: "#818cf8",
+    eww: "#2dd4bf", mako: "#fb7185", dunst: "#fbbf24", swaync: "#a78bfa",
+    tmux: "#a3e635", btop: "#7dd3fc", hyprlock: "#94a3b8", cava: "#e879f9",
+    starship: "#67e8f9", yazi: "#6ee7b7", wlogout: "#fca5a5", lazygit: "#fde047",
+    bat: "#86efac", eza: "#93c5fd", wallust: "#c4b5fd",
+  };
+  return colors[plugin] || "#9ca3af";
+}
+
 const editorFontFamily = "'JetBrainsMono Nerd Font', 'Fira Code', 'Cascadia Code', 'Consolas', monospace";
 const editorFontSize = 13;
 const editorLineHeight = 1.6;
 const editorPadding = 16;
 
-export function detectLanguage(filename: string, fullPath?: string): string {
+export function detectLanguage(filename: string, fullPath?: string, content?: string): string {
   const lower = filename.toLowerCase();
   const path = (fullPath || "").toLowerCase();
   const ext = lower.split(".").pop() || "";
@@ -93,6 +107,49 @@ export function detectLanguage(filename: string, fullPath?: string): string {
   }
   if (lower.endsWith(".conf")) return "hyprland";
   if (lower.endsWith(".css")) return "css";
+
+  // Content-based heuristic fallback
+  if (content && content.trim().length > 0) {
+    // Analyze first 20 lines to detect patterns
+    const sampleLines = content.split("\n").slice(0, 20);
+    const sample = sampleLines.join("\n");
+
+    // Hyprland: lines starting with directives like "bind =", "monitor =", "general {"
+    if (/^(bind|monitor|workspace|general|decoration|animations|input|misc)\s*[={]/m.test(sample)) return "hyprland";
+
+    // JSON: starts with { or [
+    if (/^\s*[\[{]/.test(sample)) {
+      if (/\/\//.test(sample) || /\/\*/.test(sample)) return "jsonc";
+      return "json";
+    }
+
+    // TOML: has [section] headers and key = value
+    if (/^\[[\w.]+\]/m.test(sample) && /^[\w.-]+\s*=/m.test(sample)) return "toml";
+
+    // CSS: has selectors with {} and properties with :
+    if (/\{[\s\S]*?[\w-]+\s*:/m.test(sample) && /\}/.test(sample)) return "css";
+
+    // Lua: has "local", "function", "end", "require"
+    if (/\b(local|function|end|require)\b/.test(sample) && /\bend\b/.test(sample)) return "lua";
+
+    // Shell: has #!/bin/bash, alias, export, function keywords
+    if (/^#!/m.test(sample) || /\b(alias|export|source)\b/.test(sample)) return "shell";
+
+    // Fish: has "set", "function ... end"
+    if (/^\s*set\s+/m.test(sample) || /\bfunction\b.*\bend\b/s.test(sample)) return "fish";
+
+    // INI: has [section] and key=value
+    if (/^\[[\w]+\]/m.test(sample) && /^[\w]+\s*=/m.test(sample)) return "ini";
+
+    // Eww (.yuck): has (defwindow, (defwidget, (box, (label
+    if (/\(def(window|widget|var|listen)\b/.test(sample) || /\((box|label|button|eventbox)\b/.test(sample)) return "eww";
+
+    // Rofi (.rasi): has configuration { and window { and property: value;
+    if (/configuration\s*\{/m.test(sample) || /window\s*\{/m.test(sample)) return "rofi";
+
+    // Key-value: has key = value or key: value patterns
+    if (/^[\w.-]+\s*[=:]\s*\S/m.test(sample)) return "keyvalue";
+  }
 
   return "text";
 }
@@ -1402,20 +1459,21 @@ export function CodeEditor() {
 
   const lines = activeTab.content.split("\n");
   const lineCount = lines.length;
-  const language = detectLanguage(activeTab.name, activeTab.path);
+  const language = detectLanguage(activeTab.name, activeTab.path, activeTab.content);
   const highlighted = highlightSyntax(activeTab.content, language);
   const lineNumWidth = Math.max(40, String(lineCount).length * 9 + 24);
 
   return (
     <div className="flex-1 flex flex-col min-h-0">
       {/* Tab bar */}
-      <div className="flex items-center border-b bg-card/50 overflow-x-auto shrink-0">
+      <div className="flex items-center border-b bg-card/50 overflow-x-auto shrink-0 h-9">
         {openTabs.map((tab) => (
           <div key={tab.id}
             className={`flex items-center gap-2 px-4 py-2.5 border-r cursor-pointer text-sm whitespace-nowrap group transition-colors ${tab.id === activeTabId ? "bg-background text-foreground" : "text-muted-foreground hover:bg-accent/50 hover:text-foreground"}`}
             onClick={() => setActiveTab(tab.id)}>
             {tab.modified ? <Circle className="h-2 w-2 fill-orange-400 text-orange-400 shrink-0" /> : <span className="w-2 h-2" />}
             <span>{tab.name}</span>
+            <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: getPluginColor(detectLanguage(tab.name, tab.path)) }} />
             <Button variant="ghost" size="icon" className="h-4 w-4 opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => { e.stopPropagation(); closeTab(tab.id); }}>
               <X className="h-3 w-3" />
             </Button>

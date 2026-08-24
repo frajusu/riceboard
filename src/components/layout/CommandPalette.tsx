@@ -46,6 +46,8 @@ export function CommandPalette() {
   const setNewPluginDialogOpen = useAppStore((s) => s.setNewPluginDialogOpen);
   const showDesktop = useAppStore((s) => s.showDesktop);
   const toggleShowDesktop = useAppStore((s) => s.toggleShowDesktop);
+  const setBackgroundPattern = useAppStore((s) => s.setBackgroundPattern);
+  const backgroundPattern = useAppStore((s) => s.backgroundPattern);
   const [query, setQuery] = useState("");
   const [selectedIndex, setSelectedIndex] = useState(0);
 
@@ -135,6 +137,48 @@ export function CommandPalette() {
       icon: <Monitor className="h-4 w-4" />,
       action: () => { toggleShowDesktop(); if (!previewOpen) togglePreview(); toggleCommandPalette(); },
       category: t("cmd.cat.view"),
+    },
+    {
+      id: "bg-hexagons",
+      label: "Background: Hexagons",
+      icon: <Layers className="h-4 w-4" />,
+      action: () => { setBackgroundPattern("hexagons"); toggleCommandPalette(); },
+      category: "Background",
+    },
+    {
+      id: "bg-waves",
+      label: "Background: Waves",
+      icon: <Layers className="h-4 w-4" />,
+      action: () => { setBackgroundPattern("waves"); toggleCommandPalette(); },
+      category: "Background",
+    },
+    {
+      id: "bg-circuit",
+      label: "Background: Circuit",
+      icon: <Layers className="h-4 w-4" />,
+      action: () => { setBackgroundPattern("circuit"); toggleCommandPalette(); },
+      category: "Background",
+    },
+    {
+      id: "bg-gradient",
+      label: "Background: Gradient Mesh",
+      icon: <Layers className="h-4 w-4" />,
+      action: () => { setBackgroundPattern("gradient"); toggleCommandPalette(); },
+      category: "Background",
+    },
+    {
+      id: "bg-particles",
+      label: "Background: Particles",
+      icon: <Layers className="h-4 w-4" />,
+      action: () => { setBackgroundPattern("particles"); toggleCommandPalette(); },
+      category: "Background",
+    },
+    {
+      id: "bg-none",
+      label: "Background: None",
+      icon: <Layers className="h-4 w-4" />,
+      action: () => { setBackgroundPattern("none"); toggleCommandPalette(); },
+      category: "Background",
     },
     {
       id: "settings",

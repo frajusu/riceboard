@@ -89,3 +89,119 @@
 ::selection {
   @apply bg-primary/20 text-foreground;
 }
+
+/* Animated Background Patterns */
+@keyframes hexFloat {
+  0%, 100% { transform: translateY(0) rotate(0deg); opacity: 0.03; }
+  50% { transform: translateY(-20px) rotate(30deg); opacity: 0.06; }
+}
+
+@keyframes waveFlow {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+@keyframes nodePulse {
+  0%, 100% { opacity: 0.03; r: 2; }
+  50% { opacity: 0.08; r: 4; }
+}
+
+@keyframes linePulse {
+  0%, 100% { opacity: 0.02; }
+  50% { opacity: 0.06; }
+}
+
+@keyframes blobDrift {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33% { transform: translate(30px, -20px) scale(1.1); }
+  66% { transform: translate(-20px, 15px) scale(0.95); }
+}
+
+@keyframes particleFloat {
+  0%, 100% { transform: translateY(0); opacity: 0.04; }
+  50% { transform: translateY(-10px); opacity: 0.08; }
+}
+
+@keyframes lineFade {
+  0%, 100% { opacity: 0.02; }
+  50% { opacity: 0.05; }
+}
+
+.animated-hexagon {
+  width: 60px;
+  height: 60px;
+  background: rgba(203, 166, 247, 0.03);
+  clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+  animation: hexFloat 8s ease-in-out infinite;
+}
+
+.animated-wave {
+  position: absolute;
+  bottom: 0;
+  width: 200%;
+  height: 200px;
+  background: repeating-linear-gradient(
+    90deg,
+    transparent,
+    transparent 40px,
+    rgba(203, 166, 247, 0.02) 40px,
+    rgba(203, 166, 247, 0.02) 80px
+  );
+  border-radius: 50% 50% 0 0;
+  animation: waveFlow 12s linear infinite;
+}
+
+.animated-wave-1 { bottom: 0; opacity: 0.5; }
+.animated-wave-2 { bottom: 20px; opacity: 0.3; animation-duration: 16s; }
+.animated-wave-3 { bottom: 40px; opacity: 0.2; animation-duration: 20s; }
+
+.circuit-node {
+  fill: rgba(203, 166, 247, 0.05);
+  animation: nodePulse 3s ease-in-out infinite;
+}
+
+.circuit-line {
+  animation: linePulse 3s ease-in-out infinite;
+}
+
+.animated-gradient-blob {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(80px);
+  animation: blobDrift 15s ease-in-out infinite;
+}
+
+.blob-1 {
+  width: 400px;
+  height: 400px;
+  top: 10%;
+  left: 20%;
+  background: rgba(203, 166, 247, 0.04);
+}
+
+.blob-2 {
+  width: 300px;
+  height: 300px;
+  top: 50%;
+  right: 10%;
+  background: rgba(245, 194, 231, 0.03);
+  animation-delay: -5s;
+}
+
+.blob-3 {
+  width: 350px;
+  height: 350px;
+  bottom: 10%;
+  left: 40%;
+  background: rgba(137, 180, 250, 0.03);
+  animation-delay: -10s;
+}
+
+.particle-dot {
+  fill: rgba(203, 166, 247, 0.06);
+  animation: particleFloat 6s ease-in-out infinite;
+}
+
+.particle-line {
+  animation: lineFade 4s ease-in-out infinite;
+}

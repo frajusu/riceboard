@@ -59,6 +59,15 @@ fn main() {
         std::env::set_var("GDK_BACKEND", "x11");
         std::env::set_var("WEBKIT_DISABLE_COMPOSITING_MODE", "1");
         std::env::set_var("LIBGL_ALWAYS_SOFTWARE", "0");
+        // Fix Arch Linux EGL crash on Wayland - preload wayland client library
+        if let Ok(ld_path) = std::process::Command::new("sh")
+            .args(["-c", "echo /usr/lib/libwayland-client.so.0"])
+            .output() {
+            let path = String::from_utf8_lossy(&ld_path.stdout).trim().to_string();
+            if !path.is_empty() && std::path::Path::new(&path).exists() {
+                std::env::set_var("LD_PRELOAD", &path);
+            }
+        }
     }
     run()
 }

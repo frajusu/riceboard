@@ -804,10 +804,12 @@ export function PreviewPanel() {
 
   if (!previewOpen) {
     return (
-      <div className="w-8 flex flex-col items-center py-2 border-l">
-        <Tooltip><TooltipTrigger asChild>
-          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={togglePreview}><Eye className="h-3.5 w-3.5 text-muted-foreground" /></Button>
-        </TooltipTrigger><TooltipContent>Mostrar preview</TooltipContent></Tooltip>
+      <div className="relative flex flex-col border-l shrink-0" style={{ width: 32 }}>
+        <div className="flex items-center justify-center h-9 border-b shrink-0">
+          <Tooltip><TooltipTrigger asChild>
+            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={togglePreview}><Eye className="h-3.5 w-3.5 text-muted-foreground" /></Button>
+          </TooltipTrigger><TooltipContent>Mostrar preview</TooltipContent></Tooltip>
+        </div>
       </div>
     );
   }
@@ -869,7 +871,7 @@ export function PreviewPanel() {
     <div className="relative flex flex-col border-l overflow-hidden shrink-0" style={{ width: previewWidth }}>
       <div className="absolute left-0 top-0 bottom-0 w-1.5 cursor-col-resize hover:bg-primary/30 transition-colors z-10"
         onMouseDown={(e) => { e.preventDefault(); const sx = e.clientX; const sw = previewWidth; const mv = (ev: MouseEvent) => setPreviewWidth(Math.max(200, Math.min(600, sw + sx - ev.clientX))); const up = () => { window.removeEventListener("mousemove", mv); window.removeEventListener("mouseup", up); }; window.addEventListener("mousemove", mv); window.addEventListener("mouseup", up); }} />
-      <div className="flex items-center justify-between px-2.5 py-1.5 border-b shrink-0">
+      <div className="flex items-center justify-between px-2.5 py-1.5 border-b shrink-0 h-9">
         <div className="flex items-center gap-1.5 text-xs font-medium"><Eye className="h-3.5 w-3.5 text-muted-foreground" />{t("preview.title")}</div>
         <div className="flex items-center gap-0.5">
           <Tooltip><TooltipTrigger asChild>

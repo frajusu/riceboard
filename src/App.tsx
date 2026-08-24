@@ -13,6 +13,7 @@ import { t } from "@/lib/i18n";
 import { Button } from "@/components/ui/button";
 import { invoke } from "@tauri-apps/api/core";
 import { Check, FolderOpen, X, Settings, FileText } from "lucide-react";
+import { AnimatedBackground } from "@/components/backgrounds/AnimatedBackground";
 
 function reportError(msg: string) {
   try { localStorage.setItem("riceboard:last-error", msg); } catch {}
@@ -241,6 +242,10 @@ function SettingsDialog() {
   const togglePlugin = useAppStore((s) => s.togglePlugin);
   const language = useAppStore((s) => s.language);
   const setLanguage = useAppStore((s) => s.setLanguage);
+  const backgroundPattern = useAppStore((s) => s.backgroundPattern);
+  const setBackgroundPattern = useAppStore((s) => s.setBackgroundPattern);
+  const backgroundOpacity = useAppStore((s) => s.backgroundOpacity);
+  const setBackgroundOpacity = useAppStore((s) => s.setBackgroundOpacity);
 
   const simulationPlugins = [
     "hyprland", "waybar", "kitty", "rofi", "neovim", "mako", "btop",
@@ -381,6 +386,40 @@ function SettingsDialog() {
                     <span>{name}</span>
                   </button>
                 ))}
+              </div>
+            </div>
+
+            {/* Background */}
+            <div>
+              <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">Background</h3>
+              <div className="grid grid-cols-3 gap-2 mb-4">
+                {["none", "hexagons", "waves", "circuit", "gradient", "particles"].map((p) => (
+                  <button
+                    key={p}
+                    onClick={() => setBackgroundPattern(p)}
+                    className={`px-3 py-2 rounded-lg border text-xs transition-all capitalize ${
+                      backgroundPattern === p
+                        ? "border-violet-500/50 bg-violet-500/10 text-violet-400"
+                        : "border-border hover:bg-accent/50"
+                    }`}
+                  >
+                    {p}
+                  </button>
+                ))}
+              </div>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-muted-foreground">Opacity</span>
+                  <span className="text-xs text-muted-foreground">{backgroundOpacity}%</span>
+                </div>
+                <input
+                  type="range"
+                  min={0}
+                  max={100}
+                  value={backgroundOpacity}
+                  onChange={(e) => setBackgroundOpacity(parseInt(e.target.value))}
+                  className="w-full h-1 accent-violet-500 cursor-pointer"
+                />
               </div>
             </div>
           </div>
@@ -531,6 +570,8 @@ function NewPluginDialog() {
 
 export default function App() {
   const restoreSession = useAppStore((s) => s.restoreSession);
+  const backgroundPattern = useAppStore((s) => s.backgroundPattern);
+  const backgroundOpacity = useAppStore((s) => s.backgroundOpacity);
   const didInit = useRef(false);
 
   useEffect(() => {
@@ -556,6 +597,7 @@ export default function App() {
           <div className="flex-1 flex min-h-0">
             <Sidebar />
             <main className="flex-1 flex min-h-0 relative">
+              <AnimatedBackground pattern={backgroundPattern} opacity={backgroundOpacity} />
               <CodeEditor />
               <PreviewPanel />
             </main>
