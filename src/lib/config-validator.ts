@@ -287,7 +287,7 @@ function validateWaybar(content: string): ConfigError[] {
 
 // ===== CSS =====
 function stripCssComments(content: string): string {
-  // Remove multi-line /* */ comments
+  // Remove multi-line /* */ comments but preserve newlines to keep line numbers
   let result = "";
   let inComment = false;
   for (let i = 0; i < content.length; i++) {
@@ -295,6 +295,8 @@ function stripCssComments(content: string): string {
       if (content[i] === "*" && content[i + 1] === "/") {
         inComment = false;
         i++; // skip /
+      } else if (content[i] === "\n") {
+        result += "\n"; // Preserve newlines within comments
       }
     } else {
       if (content[i] === "/" && content[i + 1] === "*") {
@@ -313,6 +315,7 @@ function validateCss(content: string): ConfigError[] {
   const cleaned = stripCssComments(content);
   const lines = cleaned.split("\n");
   let braceCount = 0;
+  let openParens = 0; // Track multi-line function calls like image()
 
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i].trim();
@@ -322,6 +325,12 @@ function validateCss(content: string): ConfigError[] {
 
     // Skip pure comment lines (already stripped, but just in case)
     if (line.startsWith("//")) continue;
+
+    // Track multi-line parentheses (for CSS functions like image(), url())
+    for (const ch of line) {
+      if (ch === "(") openParens++;
+      if (ch === ")") openParens--;
+    }
 
     for (const ch of line) {
       if (ch === "{") braceCount++;
@@ -340,14 +349,30 @@ function validateCss(content: string): ConfigError[] {
         line.startsWith("@")) continue;
 
     // Check for missing semicolons in property lines
-    if (braceCount > 0 && line.includes(":") && !line.endsWith("{") && !line.endsWith(",")) {
+    // Skip if we're inside a multi-line function call (openParens > 0)
+    if (braceCount > 0 && openParens <= 0 && line.includes(":") && !line.endsWith("{") && !line.endsWith(",")) {
       const propMatch = line.match(/^([\w-]+)\s*:\s*(.+?)\s*;?\s*$/);
       if (propMatch) {
         const prop = propMatch[1];
         const val = propMatch[2];
         if (val && !line.endsWith(";") && !line.endsWith("{")) {
-          // Only warn if it looks like a real property (not a selector)
-          if (!prop.includes(" ") && !prop.startsWith("#") && !prop.startsWith(".") && !prop.startsWith("&")) {
+          // Check the next non-empty line to decide if semicolon is needed
+          let nextNonEmptyIsBrace = false;
+          let nextIsContinuation = false;
+          for (let j = i + 1; j < lines.length; j++) {
+            const nextLine = lines[j].trim();
+            if (nextLine) {
+              nextNonEmptyIsBrace = nextLine.startsWith("}");
+              // Check if next line is a continuation (starts with non-property content)
+              // A continuation line typically starts with whitespace, a function name, or a value
+              // A new property would match: identifier followed by colon
+              const nextIsProperty = /^[\w-]+\s*:/.test(nextLine);
+              nextIsContinuation = !nextIsProperty && !nextLine.startsWith("}") && !nextLine.startsWith("{");
+              break;
+            }
+          }
+          // Only warn if it looks like a real property, not last in block, and not a continuation
+          if (!prop.includes(" ") && !prop.startsWith("#") && !prop.startsWith(".") && !prop.startsWith("&") && !nextNonEmptyIsBrace && !nextIsContinuation) {
             errors.push({ line: lineNum, column: line.length, endColumn: line.length + 1, message: `Property "${prop}" not terminated with ';'`, severity: "warning" });
           }
         }
@@ -449,6 +474,9 @@ function validateKitty(content: string): ConfigError[] {
 
     if (!line || line.startsWith("#")) continue;
 
+    // Skip comment-like lines with # in them (encoding artifacts, vim fold markers like "i#:")
+    if (line.includes("#")) continue;
+
     if (line.includes(" ")) {
       const idx = line.indexOf(" ");
       const key = line.substring(0, idx).trim();
@@ -477,6 +505,9 @@ function validateKeyValue(content: string): ConfigError[] {
   const errors: ConfigError[] = [];
   const lines = content.split("\n");
 
+  // Keys that commonly have empty values
+  const emptyValueOk = new Set(["prompt", "placeholder", "message"]);
+
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i].trim();
     const lineNum = i + 1;
@@ -498,7 +529,7 @@ function validateKeyValue(content: string): ConfigError[] {
         errors.push({ line: lineNum, column: 1, endColumn: key.length + 1, message: `Key "${key}" contains whitespace`, severity: "error" });
       }
 
-      if (!value && !key.startsWith("#")) {
+      if (!value && !key.startsWith("#") && !emptyValueOk.has(key)) {
         errors.push({ line: lineNum, column: idx + 2, endColumn: line.length + 1, message: `Empty value for key "${key}"`, severity: "warning" });
       }
     }
@@ -556,9 +587,14 @@ function validateToml(content: string): ConfigError[] {
           errors.push({ line: lineNum, column: idx + 2, endColumn: line.length + 1, message: `Unclosed string literal`, severity: "error" });
         }
       } else if (/^\[/.test(value)) {
-        const bracketCount = (value.match(/\[/g) || []).length - (value.match(/\]/g) || []).length;
-        if (bracketCount !== 0) {
-          errors.push({ line: lineNum, column: idx + 2, endColumn: line.length + 1, message: `Unclosed bracket in array`, severity: "error" });
+        // Check for bracket balance, but allow multi-line arrays (value ending with [ means continuation)
+        if (value.endsWith("[")) {
+          // Multi-line array start - don't flag as error, the closing ] is on a later line
+        } else {
+          const bracketCount = (value.match(/\[/g) || []).length - (value.match(/\]/g) || []).length;
+          if (bracketCount !== 0) {
+            errors.push({ line: lineNum, column: idx + 2, endColumn: line.length + 1, message: `Unclosed bracket in array`, severity: "error" });
+          }
         }
       }
       // Skip inline tables { ... } - they're valid TOML
@@ -579,7 +615,20 @@ function validateJsonLike(content: string): ConfigError[] {
     let line = lines[i].trim();
     const lineNum = i + 1;
 
-    const commentIdx = line.indexOf("//");
+    // Strip // comments, but only outside of strings
+    let inString = false;
+    let stringChar = "";
+    let commentIdx = -1;
+    for (let c = 0; c < line.length; c++) {
+      const ch = line[c];
+      if (inString) {
+        if (ch === "\\") { c++; continue; } // skip escaped chars
+        if (ch === stringChar) inString = false;
+      } else {
+        if (ch === '"' || ch === "'") { inString = true; stringChar = ch; }
+        else if (ch === "/" && c + 1 < line.length && line[c + 1] === "/") { commentIdx = c; break; }
+      }
+    }
     if (commentIdx >= 0) {
       line = line.substring(0, commentIdx).trim();
     }
@@ -601,11 +650,7 @@ function validateJsonLike(content: string): ConfigError[] {
       errors.push({ line: lineNum, column: 1, endColumn: 2, message: "Unexpected closing bracket ']'", severity: "error" });
       bracketCount = 0;
     }
-
-    const trailingComma = line.match(/,\s*[}\]]/);
-    if (trailingComma) {
-      errors.push({ line: lineNum, column: line.indexOf(",") + 1, endColumn: line.indexOf(",") + 2, message: "Trailing comma", severity: "warning" });
-    }
+    // Trailing commas are valid in JSONC - don't flag them
   }
 
   if (braceCount > 0) {
@@ -688,6 +733,7 @@ function validateLua(content: string): ConfigError[] {
   const errors: ConfigError[] = [];
   const lines = content.split("\n");
   let blockCount = 0;
+  let inMultiLineString = false;
 
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i].trim();
@@ -695,36 +741,53 @@ function validateLua(content: string): ConfigError[] {
 
     if (!line || line.startsWith("--")) continue;
 
-    // Skip lines inside strings
-    if (line.startsWith('"') && line.endsWith('"')) continue;
-    if (line.startsWith("'") && line.endsWith("'")) continue;
-    if (line.startsWith("[[") || line.startsWith("[")) continue;
+    // Handle multi-line strings [[ ... ]]
+    if (inMultiLineString) {
+      if (line.includes("]]")) inMultiLineString = false;
+      continue;
+    }
+    if (line.startsWith("[[") && !line.includes("]]")) {
+      inMultiLineString = true;
+      continue;
+    }
+
+    // Skip lines that are just string assignments or table constructors
+    if (line.startsWith('"') || line.startsWith("'") || line.startsWith("[")) continue;
+
+    // Strip string contents to avoid counting keywords inside strings
+    const stripped = line
+      .replace(/"[^"\\]*(\\.[^"\\]*)*"/g, '""')   // Replace "strings" with empty
+      .replace(/'[^'\\]*(\\.[^'\\]*)*'/g, "''");   // Replace 'strings' with empty
 
     // Count block openers
-    if (/\bfunction\b/.test(line)) blockCount++;
-    if (/\bif\b/.test(line) && /\bthen\b/.test(line)) blockCount++;
-    if (/\bfor\b/.test(line) && /\bdo\b/.test(line)) blockCount++;
-    if (/\bwhile\b/.test(line) && /\bdo\b/.test(line)) blockCount++;
-    if (/\brepeat\b/.test(line)) blockCount++;
+    if (/\bfunction\b/.test(stripped)) blockCount++;
+    if (/\bif\b/.test(stripped) && /\bthen\b/.test(stripped)) blockCount++;
+    if (/\bfor\b/.test(stripped) && /\bdo\b/.test(stripped)) blockCount++;
+    if (/\bwhile\b/.test(stripped) && /\bdo\b/.test(stripped)) blockCount++;
+    if (/\brepeat\b/.test(stripped)) blockCount++;
 
     // Count block closers
-    if (/\bend\b/.test(line)) {
-      // Make sure "end" is actually a block end, not part of a word like "send" or "rend"
-      if (/\bend\b/.test(line) && !/\b(friend|send|rend|blend|append|depend|suspend|defend|amend)\b/.test(line)) {
-        if (blockCount > 0) blockCount--;
+    if (/\bend\b/.test(stripped)) {
+      const endMatches = stripped.match(/\bend\b/g);
+      if (endMatches) {
+        const cleanLine = stripped.replace(/\b(friend|send|rend|blend|append|depend|suspend|defend|amend|backend|send|render|vendor|weekend|lend|mend)\b/g, "");
+        const realEndCount = (cleanLine.match(/\bend\b/g) || []).length;
+        if (realEndCount > 0 && blockCount >= realEndCount) {
+          blockCount -= realEndCount;
+        } else if (realEndCount > 0) {
+          blockCount = 0;
+        }
       }
     }
-    if (/\buntil\b/.test(line) && blockCount > 0) blockCount--;
+    if (/\buntil\b/.test(stripped) && blockCount > 0) blockCount--;
 
     // Check unclosed parens in function calls (only single-line)
-    // Multi-line function calls are common in Lua and not errors
-    if (line.includes("require(") || line.includes("vim.cmd(") || line.includes("vim.keymap.set(") ||
-        line.includes("vim.api.") || line.includes("vim.lsp.")) {
-      const unclosedParen = (line.match(/\(/g) || []).length - (line.match(/\)/g) || []).length;
-      // Only flag if the line ends with a closing paren or semicolon (single-line call)
-      if (unclosedParen > 0 && (line.endsWith(")") || line.endsWith(");") || line.endsWith(","))) {
-        // This is fine — multi-line call
-      } else if (unclosedParen > 0 && !line.endsWith(",") && !line.endsWith("{") && !line.endsWith("(")) {
+    if (stripped.includes("require(") || stripped.includes("vim.cmd(") || stripped.includes("vim.keymap.set(") ||
+        stripped.includes("vim.api.") || stripped.includes("vim.lsp.")) {
+      const unclosedParen = (stripped.match(/\(/g) || []).length - (stripped.match(/\)/g) || []).length;
+      if (unclosedParen > 0 && (stripped.endsWith(")") || stripped.endsWith(");") || stripped.endsWith(","))) {
+        // Multi-line call
+      } else if (unclosedParen > 0 && !stripped.endsWith(",") && !stripped.endsWith("{") && !stripped.endsWith("(")) {
         errors.push({ line: lineNum, column: line.length - 1, endColumn: line.length + 1, message: "Unclosed parenthesis", severity: "error" });
       }
     }
@@ -745,6 +808,8 @@ function validateShell(content: string): ConfigError[] {
   let forCount = 0;
   let whileCount = 0;
   let caseCount = 0;
+  let inCaseBlock = false;
+  let inMultiLineString = false;
 
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i].trim();
@@ -752,7 +817,35 @@ function validateShell(content: string): ConfigError[] {
 
     if (!line || line.startsWith("#")) continue;
 
-    const stripped = line.replace(/"[^"]*"/g, "").replace(/'[^']*'/g, "");
+    // Handle multi-line strings with \ continuation
+    if (inMultiLineString) {
+      if (line.endsWith("\\")) {
+        continue;
+      }
+      inMultiLineString = false;
+      continue; // Skip quote check for the closing line of multi-line string
+    }
+    if (line.endsWith("\\") && !line.startsWith("#")) {
+      const testStr = line.replace(/"[^"\\]*(\\.[^"\\]*)*"/g, "").replace(/'[^']*'/g, "");
+      if (testStr.includes('"') || testStr.includes("'")) {
+        inMultiLineString = true;
+        continue;
+      }
+    }
+
+    // Strip inline comments (everything after # that's not inside quotes)
+    let stripped = line
+      .replace(/"[^"\\]*(\\.[^"\\]*)*"/g, "QQ")  // Replace "strings" with placeholder
+      .replace(/'[^']*'/g, "QQ")                    // Replace 'strings' with placeholder
+      .replace(/#.*$/, "");                          // Remove inline comments
+
+    // Restore placeholders for keyword matching (but don't need the actual content)
+    stripped = stripped.replace(/QQ/g, "");
+
+    // Now strip [[ ]] and (( )) and remaining string artifacts
+    stripped = stripped
+      .replace(/\[\[[^\]]*\]\]/g, "")
+      .replace(/\(\([^)]*\)\)/g, "");
 
     if (/\bif\b/.test(stripped) && !/\bfi\b/.test(stripped) && !/\belif\b/.test(stripped)) ifCount++;
     if (/\bfi\b/.test(stripped) && ifCount > 0) ifCount--;
@@ -763,9 +856,12 @@ function validateShell(content: string): ConfigError[] {
     if (/\bwhile\b/.test(stripped)) whileCount++;
     if (/\bdone\b/.test(stripped) && whileCount > 0) whileCount--;
 
-    if (/\bcase\b/.test(stripped)) caseCount++;
-    if (/\besac\b/.test(stripped) && caseCount > 0) caseCount--;
+    if (/\bcase\b/.test(stripped)) { caseCount++; inCaseBlock = true; }
+    if (/\besac\b/.test(stripped) && caseCount > 0) { caseCount--; inCaseBlock = false; }
 
+    if (inCaseBlock) continue;
+
+    // Quote checking on the stripped version (comments removed)
     const openQuote = (stripped.match(/"/g) || []).length % 2;
     if (openQuote) {
       errors.push({ line: lineNum, column: line.length - 1, endColumn: line.length + 1, message: "Unclosed double quote", severity: "error" });
@@ -1039,21 +1135,37 @@ export function validateConfig(filename: string, content: string, fullPath?: str
 
   let pluginName: string | null = null;
 
-  // First try matching by plugin name in filename
-  for (const key of Object.keys(validators)) {
-    if (lower.includes(key)) {
-      pluginName = key;
-      break;
+  // Priority 1: Extension-based matching (most reliable, prevents filename-based false positives)
+  if (lower.endsWith(".lua")) pluginName = "neovim";
+  else if (lower.endsWith(".toml")) {
+    // Check for yazi configs which use complex inline tables
+    if (pathLower.includes("yazi")) {
+      return []; // Yazi uses complex inline tables, skip validation
+    }
+    pluginName = "alacritty"; // alacritty uses validateToml
+  }
+  else if (lower.endsWith(".json") || lower.endsWith(".jsonc")) pluginName = "waybar";
+  else if (lower.endsWith(".css")) pluginName = "waybar";
+  else if (lower.endsWith(".ini")) pluginName = "foot";
+  else if (lower.endsWith(".rasi")) pluginName = "rofi";
+  else if (lower.endsWith(".yuck")) pluginName = "eww";
+  else if (lower.endsWith(".fish")) pluginName = "fish";
+  else if (lower.endsWith(".sh") || lower.endsWith(".bash") || lower.endsWith(".zsh") || lower.endsWith(".rc") || lower.endsWith(".zshrc") || lower.endsWith(".bashrc")) pluginName = "bash";
+
+  // Priority 2: Filename content matching (for .conf and extension-less files)
+  if (!pluginName) {
+    for (const key of Object.keys(validators)) {
+      if (lower.includes(key)) {
+        pluginName = key;
+        break;
+      }
     }
   }
 
-  // If no match, try matching by plugin name in path segments (not repo name)
-  // Only check the config directory part (e.g., ".config/hypr", ".config/kitty")
+  // Priority 3: Path-based matching
   if (!pluginName) {
-    // Extract config directory segments from path
     const pathParts = pathLower.split(/[/\\]/);
     for (const key of Object.keys(validators)) {
-      // Check if any path segment matches the plugin name
       if (pathParts.some(part => part === key || part.startsWith(key + "/") || part.startsWith(key + "\\"))) {
         pluginName = key;
         break;
@@ -1061,28 +1173,12 @@ export function validateConfig(filename: string, content: string, fullPath?: str
     }
   }
 
-  if (!pluginName) {
-    if (lower.endsWith(".lua")) pluginName = "neovim";
-    else if (lower.endsWith(".toml")) pluginName = "starship";
-    else if (lower.endsWith(".json") || lower.endsWith(".jsonc")) pluginName = "waybar";
-    else if (lower.endsWith(".css")) pluginName = "waybar";
-    else if (lower.endsWith(".ini")) pluginName = "foot";
-    else if (lower.endsWith(".rasi")) pluginName = "rofi";
-    else if (lower.endsWith(".yuck")) pluginName = "eww";
-    else if (lower.endsWith(".scss")) pluginName = "eww";
-    else if (lower.endsWith(".conf") && (lower.includes("hypr") || lower.includes("kitty"))) {
-      // Only match .conf to specific known tools
-      pluginName = lower.includes("kitty") ? "kitty" : "hyprland";
+  // Priority 4: .conf content-based detection
+  if (!pluginName && lower.endsWith(".conf")) {
+    if (lower.includes("kitty")) pluginName = "kitty";
+    else if (content.includes("bind") && content.includes("=") && (content.includes("monitor") || content.includes("decoration") || content.includes("general"))) {
+      pluginName = "hyprland";
     }
-    else if (lower.endsWith(".conf")) {
-      // Other .conf files: check if they look like hyprland config
-      if (content.includes("bind") && content.includes("=") && (content.includes("monitor") || content.includes("decoration") || content.includes("general"))) {
-        pluginName = "hyprland";
-      }
-      // Otherwise skip validation for unknown .conf files
-    }
-    else if (lower.endsWith(".rc") || lower.endsWith(".zshrc") || lower.endsWith(".bashrc")) pluginName = "bash";
-    else if (lower.endsWith(".fish")) pluginName = "fish";
   }
 
   if (!pluginName || !validators[pluginName]) return [];

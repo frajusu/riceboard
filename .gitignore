@@ -29,3 +29,4 @@ test-dotfiles/
 # Logs
 *.log
 npm-debug.log*
+test-validator.ts

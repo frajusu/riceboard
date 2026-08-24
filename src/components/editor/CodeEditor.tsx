@@ -14,56 +14,211 @@ const editorFontSize = 13;
 const editorLineHeight = 1.6;
 const editorPadding = 16;
 
-function highlightSyntax(code: string, filename: string): React.ReactNode[] {
-  const ext = filename.split(".").pop()?.toLowerCase() || "";
-  const keywords: Record<string, string[]> = {
-    ini: ["bind", "monitor", "workspace", "input", "general", "decoration", "animations", "layerrule", "windowrule", "plugin", "exec", "exec-once", "env", "source"],
-    conf: ["bind", "monitor", "workspace", "input", "general", "decoration", "animations", "layerrule", "windowrule", "plugin", "exec", "exec-once", "env", "source"],
-    css: ["color", "background", "font", "padding", "margin", "border", "border-radius", "box-shadow", "transition", "hover", "active", "focus", "width", "height", "display", "flex", "grid"],
-    lua: ["local", "function", "end", "if", "then", "else", "elseif", "for", "while", "do", "return", "require", "vim", "true", "false", "nil"],
-    json: [],
-    yaml: [],
-    sh: ["if", "then", "else", "fi", "for", "do", "done", "while", "case", "esac", "function", "return", "export", "source", "alias", "in"],
-    zsh: ["if", "then", "else", "fi", "for", "do", "done", "while", "case", "esac", "function", "return", "export", "source", "alias", "in"],
-    fish: ["if", "else", "end", "for", "while", "function", "return", "set", "export", "source", "alias"],
-    rasi: ["configuration", "theme", "import"],
-  };
-  const commentStart: Record<string, string> = {
-    ini: "#", conf: "#", css: "/*", lua: "--", json: "//", yaml: "#",
-    sh: "#", zsh: "#", fish: "#", rasi: "//",
+export function detectLanguage(filename: string, fullPath?: string): string {
+  const lower = filename.toLowerCase();
+  const path = (fullPath || "").toLowerCase();
+  const ext = lower.split(".").pop() || "";
+
+  // Plugin-specific detection from path
+  const pluginMap: [RegExp, string][] = [
+    [/hyprland/, "hyprland"],
+    [/\/waybar\b|\\waybar\b|waybar\//, "waybar"],
+    [/kitty/, "kitty"],
+    [/rofi/, "rofi"],
+    [/\/nvim\b|\\nvim\b|nvim\//, "neovim"],
+    [/neovim/, "neovim"],
+    [/mako/, "mako"],
+    [/dunst/, "dunst"],
+    [/tmux/, "tmux"],
+    [/btop/, "btop"],
+    [/eww/, "eww"],
+    [/cava/, "cava"],
+    [/starship/, "starship"],
+    [/fastfetch/, "fastfetch"],
+    [/\/foot\b|\\foot\b|foot\//, "foot"],
+    [/fuzzel/, "fuzzel"],
+    [/swaync/, "swaync"],
+    [/wlogout/, "wlogout"],
+    [/hyprlock/, "hyprlock"],
+    [/hyprpaper/, "hyprpaper"],
+    [/lazygit/, "lazygit"],
+    [/\/bat\b|\\bat\b|bat\//, "bat"],
+    [/eza/, "eza"],
+    [/wallust/, "wallust"],
+    [/swww/, "swww"],
+    [/wofi/, "wofi"],
+    [/ghostty/, "ghostty"],
+    [/alacritty/, "alacritty"],
+  ];
+
+  for (const [re, lang] of pluginMap) {
+    if (re.test(path) || re.test(lower)) return lang;
+  }
+
+  // Extension-based fallback
+  const extMap: Record<string, string> = {
+    json: "json",
+    jsonc: "jsonc",
+    toml: "toml",
+    css: "css",
+    lua: "lua",
+    sh: "shell",
+    zsh: "shell",
+    bash: "shell",
+    fish: "fish",
+    ini: "ini",
+    yuck: "eww",
+    rasi: "rofi",
+    conf: "hyprland",
   };
 
-  const kws = keywords[ext] || [];
-  const cStart = commentStart[ext] || "#";
+  if (ext === "conf") {
+    if (lower.includes("hypr")) return "hyprland";
+    return "hyprland";
+  }
+  if (ext === "css") {
+    if (lower.includes("waybar") || path.includes("waybar")) return "waybar";
+    return "css";
+  }
+  if (extMap[ext]) return extMap[ext];
+
+  // Fallback by content heuristics or plugin name
+  if (lower.startsWith("keybind") || lower.startsWith("binds")) return "hyprland";
+  if (lower.startsWith("settings") || lower.startsWith("config")) {
+    if (path.includes("kitty")) return "kitty";
+    if (path.includes("alacritty")) return "alacritty";
+    if (path.includes("ghostty")) return "ghostty";
+    if (path.includes("tmux")) return "tmux";
+    if (path.includes("btop")) return "btop";
+  }
+  if (lower.endsWith(".conf")) return "hyprland";
+  if (lower.endsWith(".css")) return "css";
+
+  return "text";
+}
+
+// Catppuccin Mocha palette
+const C = {
+  comment:    "#6c7086",
+  keyword:    "#cba6f7",
+  string:     "#a6e3a1",
+  number:     "#fab387",
+  color:      "#89b4fa",
+  text:       "#cdd6f4",
+  operator:   "#89dceb",
+  section:    "#f9e2af",
+  boolean:    "#f38ba8",
+  property:   "#89b4fa",
+  function:   "#89b4fa",
+  variable:   "#f38ba8",
+  default:    "#cdd6f4",
+} as const;
+
+function esc(s: string): string {
+  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+type TokenType = "comment" | "keyword" | "string" | "number" | "color" | "section" | "boolean" | "property" | "variable" | "operator" | "function" | "default";
+
+function span(token: string, type: TokenType): React.ReactNode {
+  if (type === "default") return esc(token);
+  const styles: Record<TokenType, React.CSSProperties> = {
+    comment:  { color: C.comment, fontStyle: "italic" },
+    keyword:  { color: C.keyword },
+    string:   { color: C.string },
+    number:   { color: C.number },
+    color:    { color: C.color },
+    section:  { color: C.section, fontWeight: 600 },
+    boolean:  { color: C.boolean },
+    property: { color: C.property },
+    variable: { color: C.variable },
+    operator: { color: C.operator },
+    function: { color: C.function },
+    default:  { color: C.default },
+  };
+  return <span key={`t${++span._i}`} style={styles[type]}>{esc(token)}</span>;
+}
+span._i = 0;
+
+function highlightSyntax(code: string, language: string): React.ReactNode[] {
+  // Reset span counter per call
+  span._i = 0;
+
   const lines = code.split("\n");
+
+  // For languages needing block-state tracking across lines
+  let inBlockComment = false;
+  let inLuaLongString = false;
 
   return lines.map((line, lineIdx) => {
     let parts: React.ReactNode[] = [];
-    let remaining = line;
 
-    if (cStart === "/*") {
-      const blockComment = remaining.match(/\/\*[\s\S]*?\*\//);
-      if (blockComment) {
-        const idx = remaining.indexOf(blockComment[0]);
-        if (idx > 0) parts.push(<span key="pre">{remaining.substring(0, idx)}</span>);
-        parts.push(<span key="cm" style={{ color: "#8b949e", fontStyle: "italic" }}>{blockComment[0]}</span>);
-        remaining = remaining.substring(idx + blockComment[0].length);
-      }
-    } else {
-      const commentIdx = remaining.indexOf(cStart);
-      if (commentIdx >= 0) {
-        const before = remaining.substring(0, commentIdx);
-        const comment = remaining.substring(commentIdx);
-        remaining = "";
-        if (before) {
-          parts.push(...highlightTokens(before, kws, ext));
-        }
-        parts.push(<span key="cm" style={{ color: "#8b949e", fontStyle: "italic" }}>{comment}</span>);
-      }
-    }
-
-    if (remaining) {
-      parts.push(...highlightTokens(remaining, kws, ext));
+    switch (language) {
+      case "hyprland":
+        parts = highlightHyprland(line);
+        break;
+      case "json":
+      case "jsonc":
+        parts = highlightJSON(line, language === "jsonc");
+        break;
+      case "toml":
+        parts = highlightTOML(line);
+        break;
+      case "css":
+        parts = highlightCSS(line);
+        break;
+      case "waybar":
+        parts = highlightCSS(line);
+        break;
+      case "lua":
+        { const r = highlightLua(line, inBlockComment, inLuaLongString); parts = r.parts; inBlockComment = r.inBlock; inLuaLongString = r.inLong; break; }
+      case "shell":
+        parts = highlightShell(line);
+        break;
+      case "fish":
+        parts = highlightFish(line);
+        break;
+      case "ini":
+        parts = highlightINI(line);
+        break;
+      case "mako":
+      case "btop":
+      case "cava":
+      case "wofi":
+      case "hyprpaper":
+      case "bat":
+      case "kitty":
+      case "alacritty":
+      case "ghostty":
+      case "eza":
+        parts = highlightKeyValue(line);
+        break;
+      case "eww":
+        parts = highlightEww(line);
+        break;
+      case "rofi":
+        parts = highlightRofi(line);
+        break;
+      case "tmux":
+        parts = highlightTmux(line);
+        break;
+      case "dunst":
+        parts = highlightDunst(line);
+        break;
+      case "fastfetch":
+      case "starship":
+      case "lazygit":
+      case "wallust":
+      case "swww":
+      case "swaync":
+      case "wlogout":
+      case "hyprlock":
+      case "fuzzel":
+      case "foot":
+        parts = highlightKeyValue(line);
+        break;
+      default:
+        parts = [<span key="plain">{esc(line)}</span>];
     }
 
     return (
@@ -74,57 +229,1060 @@ function highlightSyntax(code: string, filename: string): React.ReactNode[] {
   });
 }
 
-function highlightTokens(text: string, kws: string[], ext: string): React.ReactNode[] {
+function highlightHyprland(line: string): React.ReactNode[] {
   const parts: React.ReactNode[] = [];
-  let remaining = text;
+  const trimmed = line.trimStart();
+  const indent = line.length - trimmed.length;
 
-  while (remaining.length > 0) {
-    let earliest = -1;
-    let earliestIdx = remaining.length;
-    let earliestLen = 0;
+  if (indent > 0) parts.push(<span key="ind">{esc(line.substring(0, indent))}</span>);
 
-    // Check strings
-    const strMatch = remaining.match(/^("(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*')/);
-    if (strMatch && strMatch.index! < earliestIdx) {
-      earliest = 0; earliestIdx = strMatch.index!; earliestLen = strMatch[0].length;
+  // Full-line comment
+  if (trimmed.startsWith("#")) {
+    parts.push(span(line.substring(indent), "comment"));
+    return parts;
+  }
+
+  // Section headers like $ENV = value
+  if (trimmed.startsWith("$")) {
+    const m = trimmed.match(/^(\$[A-Za-z0-9_]+)\s*(=)(.*)/);
+    if (m) {
+      parts.push(span(m[1], "variable"));
+      parts.push(span(m[2], "operator"));
+      if (m[3].trim().startsWith("#") || m[3].trim().startsWith('"')) {
+        parts.push(span(m[3], "string"));
+      } else {
+        parts.push(...highlightMixedValues(m[3]));
+      }
+      return parts;
     }
+  }
 
-    // Check numbers
-    const numMatch = remaining.match(/^\b(\d+\.?\d*)\b/);
-    if (numMatch && numMatch.index! < earliestIdx) {
-      earliest = 1; earliestIdx = numMatch.index!; earliestLen = numMatch[0].length;
-    }
+  // Directive: first word
+  const dirMatch = trimmed.match(/^([a-zA-Z_][\w-]*)/);
+  if (dirMatch) {
+    parts.push(span(dirMatch[1], "keyword"));
+    let rest = trimmed.substring(dirMatch[1].length);
 
-    // Check keywords
-    if (kws.length > 0) {
-      const kwRegex = new RegExp(`^\\b(${kws.join("|")})\\b`);
-      const kwMatch = remaining.match(kwRegex);
-      if (kwMatch && kwMatch.index! < earliestIdx) {
-        earliest = 2; earliestIdx = kwMatch.index!; earliestLen = kwMatch[0].length;
+    // Inline comment
+    const hashIdx = rest.indexOf("#");
+    let codePart = rest;
+    let commentPart = "";
+    if (hashIdx >= 0) {
+      // Only treat as comment if preceded by space or at start
+      const beforeHash = rest.substring(0, hashIdx);
+      if (hashIdx === 0 || beforeHash.endsWith(" ")) {
+        codePart = rest.substring(0, hashIdx);
+        commentPart = rest.substring(hashIdx);
       }
     }
 
-    if (earliest === -1) {
-      parts.push(<span key={parts.length}>{remaining}</span>);
+    // Highlight the value portion
+    if (codePart.length > 0) {
+      parts.push(...highlightMixedValues(codePart));
+    }
+    if (commentPart) {
+      parts.push(span(commentPart, "comment"));
+    }
+  } else {
+    parts.push(<span key="rest">{esc(trimmed)}</span>);
+  }
+
+  return parts;
+}
+
+function highlightMixedValues(text: string): React.ReactNode[] {
+  const parts: React.ReactNode[] = [];
+  let rem = text;
+
+  while (rem.length > 0) {
+    let matched = false;
+
+    // Strings
+    const strM = rem.match(/^(["'])(.*?)(\1)/);
+    if (strM && strM.index === 0) {
+      parts.push(span(strM[0], "string"));
+      rem = rem.substring(strM[0].length);
+      matched = true;
+      continue;
+    }
+
+    // Colors
+    const colM = rem.match(/^#[0-9a-fA-F]{3,8}\b/);
+    if (colM && colM.index === 0) {
+      parts.push(span(colM[0], "color"));
+      rem = rem.substring(colM[0].length);
+      matched = true;
+      continue;
+    }
+
+    // Numbers
+    const numM = rem.match(/^(-?\d+\.?\d*)\b/);
+    if (numM && numM.index === 0) {
+      parts.push(span(numM[0], "number"));
+      rem = rem.substring(numM[0].length);
+      matched = true;
+      continue;
+    }
+
+    // Booleans
+    const boolM = rem.match(/^(true|false|yes|no|on|off)\b/i);
+    if (boolM && boolM.index === 0) {
+      parts.push(span(boolM[0], "boolean"));
+      rem = rem.substring(boolM[0].length);
+      matched = true;
+      continue;
+    }
+
+    // Variables
+    const varM = rem.match(/^(\$[A-Za-z0-9_]+)/);
+    if (varM && varM.index === 0) {
+      parts.push(span(varM[0], "variable"));
+      rem = rem.substring(varM[0].length);
+      matched = true;
+      continue;
+    }
+
+    if (!matched) {
+      // Advance one character to avoid infinite loop
+      parts.push(<span key={`x${parts.length}`}>{esc(rem[0])}</span>);
+      rem = rem.substring(1);
+    }
+  }
+
+  return parts;
+}
+
+function highlightJSON(line: string, isJsonc: boolean): React.ReactNode[] {
+  const parts: React.ReactNode[] = [];
+  let rem = line;
+
+  while (rem.length > 0) {
+    // Line comment (JSONC only)
+    if (isJsonc && rem.startsWith("//")) {
+      parts.push(span(rem, "comment"));
       break;
     }
 
-    if (earliestIdx > 0) {
-      parts.push(<span key={parts.length}>{remaining.substring(0, earliestIdx)}</span>);
+    // Block comment start (JSONC only)
+    if (isJsonc && rem.startsWith("/*")) {
+      const endIdx = rem.indexOf("*/", 2);
+      if (endIdx >= 0) {
+        parts.push(span(rem.substring(0, endIdx + 2), "comment"));
+        rem = rem.substring(endIdx + 2);
+      } else {
+        parts.push(span(rem, "comment"));
+        break;
+      }
+      continue;
     }
 
-    const token = remaining.substring(earliestIdx, earliestIdx + earliestLen);
-    if (earliest === 0) {
-      parts.push(<span key={parts.length} style={{ color: "#a5d6ff" }}>{token}</span>);
-    } else if (earliest === 1) {
-      parts.push(<span key={parts.length} style={{ color: "#79c0ff" }}>{token}</span>);
-    } else if (earliest === 2) {
-      parts.push(<span key={parts.length} style={{ color: "#ff7b72", fontWeight: 500 }}>{token}</span>);
+    // Strings
+    const strM = rem.match(/^("(?:[^"\\]|\\.)*")/);
+    if (strM && strM.index === 0) {
+      const fullStr = strM[0];
+      // Check if this key is followed by :
+      const afterStr = rem.substring(fullStr.length).trimStart();
+      if (afterStr.startsWith(":")) {
+        // This is a key
+        parts.push(span(fullStr, "property"));
+      } else {
+        parts.push(span(fullStr, "string"));
+      }
+      rem = rem.substring(fullStr.length);
+      continue;
     }
 
-    remaining = remaining.substring(earliestIdx + earliestLen);
+    // Numbers
+    const numM = rem.match(/^(-?\d+\.?\d*(?:[eE][+-]?\d+)?)\b/);
+    if (numM && numM.index === 0) {
+      parts.push(span(numM[0], "number"));
+      rem = rem.substring(numM[0].length);
+      continue;
+    }
+
+    // Booleans / null
+    const boolM = rem.match(/^(true|false|null)\b/);
+    if (boolM && boolM.index === 0) {
+      parts.push(span(boolM[0], "boolean"));
+      rem = rem.substring(boolM[0].length);
+      continue;
+    }
+
+    // Operators/separators
+    const opM = rem.match(/^([{}[\]:,])/);
+    if (opM && opM.index === 0) {
+      parts.push(span(opM[0], "operator"));
+      rem = rem.substring(opM[0].length);
+      continue;
+    }
+
+    // Plain text
+    parts.push(<span key={`p${parts.length}`}>{esc(rem[0])}</span>);
+    rem = rem.substring(1);
   }
 
+  return parts;
+}
+
+function highlightTOML(line: string): React.ReactNode[] {
+  const parts: React.ReactNode[] = [];
+  const trimmed = line.trimStart();
+  const indent = line.length - trimmed.length;
+
+  if (indent > 0) parts.push(<span key="ind">{esc(line.substring(0, indent))}</span>);
+
+  // Comment
+  if (trimmed.startsWith("#")) {
+    parts.push(span(line.substring(indent), "comment"));
+    return parts;
+  }
+
+  // Table header [section]
+  const tblM = trimmed.match(/^(\[[\w.-]+\])/);
+  if (tblM && tblM.index === 0) {
+    parts.push(span(tblM[0], "section"));
+    const after = trimmed.substring(tblM[0].length);
+    if (after.trimStart().startsWith("#")) {
+      const space = after.substring(0, after.indexOf("#"));
+      parts.push(<span key="sp">{esc(space)}</span>);
+      parts.push(span(after.substring(after.indexOf("#")), "comment"));
+    } else if (after.trim().length > 0) {
+      parts.push(<span key="trailing">{esc(after)}</span>);
+    }
+    return parts;
+  }
+
+  // Array of tables [[section]]
+  const arrTblM = trimmed.match(/^(\[\[[\w.-]+\]\])/);
+  if (arrTblM && arrTblM.index === 0) {
+    parts.push(span(arrTblM[0], "section"));
+    return parts;
+  }
+
+  // Key = value
+  const kvM = trimmed.match(/^([\w.-]+)\s*(=)/);
+  if (kvM && kvM.index === 0) {
+    parts.push(span(kvM[1], "property"));
+    parts.push(span(kvM[2], "operator"));
+    const val = trimmed.substring(kvM[0].length);
+
+    // Check for comment
+    const commentIdx = val.indexOf("#");
+    let valPart = val;
+    let commentPart = "";
+    if (commentIdx >= 0 && !val.trimStart().startsWith('"') && !val.trimStart().startsWith("'")) {
+      valPart = val.substring(0, commentIdx);
+      commentPart = val.substring(commentIdx);
+    }
+
+    parts.push(...highlightTomlValue(valPart));
+    if (commentPart) parts.push(span(commentPart, "comment"));
+    return parts;
+  }
+
+  parts.push(<span key="raw">{esc(trimmed)}</span>);
+  return parts;
+}
+
+function highlightTomlValue(text: string): React.ReactNode[] {
+  const parts: React.ReactNode[] = [];
+  let rem = text;
+
+  while (rem.length > 0) {
+    // Strings
+    const strM = rem.match(/^(["'])(.*?)(\1)/);
+    if (strM && strM.index === 0) {
+      parts.push(span(strM[0], "string"));
+      rem = rem.substring(strM[0].length);
+      continue;
+    }
+
+    // Dates (YYYY-MM-DD or datetime)
+    const dateM = rem.match(/^(\d{4}-\d{2}-\d{2}(?:[T ]\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})?)?)/);
+    if (dateM && dateM.index === 0) {
+      parts.push(span(dateM[0], "number"));
+      rem = rem.substring(dateM[0].length);
+      continue;
+    }
+
+    // Numbers
+    const numM = rem.match(/^(-?\d[\d_]*\.?\d*(?:[eE][+-]?\d+)?)/);
+    if (numM && numM.index === 0) {
+      parts.push(span(numM[0], "number"));
+      rem = rem.substring(numM[0].length);
+      continue;
+    }
+
+    // Booleans
+    const boolM = rem.match(/^(true|false)\b/);
+    if (boolM && boolM.index === 0) {
+      parts.push(span(boolM[0], "boolean"));
+      rem = rem.substring(boolM[0].length);
+      continue;
+    }
+
+    parts.push(<span key={`tv${parts.length}`}>{esc(rem[0])}</span>);
+    rem = rem.substring(1);
+  }
+
+  return parts;
+}
+
+function highlightCSS(line: string): React.ReactNode[] {
+  const parts: React.ReactNode[] = [];
+  let rem = line;
+
+  while (rem.length > 0) {
+    // Block comment
+    if (rem.startsWith("/*")) {
+      const endIdx = rem.indexOf("*/", 2);
+      if (endIdx >= 0) {
+        parts.push(span(rem.substring(0, endIdx + 2), "comment"));
+        rem = rem.substring(endIdx + 2);
+      } else {
+        parts.push(span(rem, "comment"));
+        break;
+      }
+      continue;
+    }
+
+    // Line comment
+    if (rem.startsWith("//")) {
+      parts.push(span(rem, "comment"));
+      break;
+    }
+
+    // Selectors and properties use text color for identifiers
+    // Strings
+    const strM = rem.match(/^("(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*')/);
+    if (strM && strM.index === 0) {
+      parts.push(span(strM[0], "string"));
+      rem = rem.substring(strM[0].length);
+      continue;
+    }
+
+    // Hex colors
+    const colM = rem.match(/^#[0-9a-fA-F]{3,8}\b/);
+    if (colM && colM.index === 0) {
+      parts.push(span(colM[0], "color"));
+      rem = rem.substring(colM[0].length);
+      continue;
+    }
+
+    // Numbers with units
+    const numM = rem.match(/^(-?\d+\.?\d*)(px|em|rem|%|vh|vw|vmin|vmax|deg|rad|turn|s|ms|fr|ch|ex)?\b/);
+    if (numM && numM.index === 0) {
+      parts.push(span(numM[0], "number"));
+      rem = rem.substring(numM[0].length);
+      continue;
+    }
+
+    // At-rules
+    const atM = rem.match(/^(@\w+)/);
+    if (atM && atM.index === 0) {
+      parts.push(span(atM[0], "keyword"));
+      rem = rem.substring(atM[0].length);
+      continue;
+    }
+
+    // Known CSS property names (before colon)
+    const propM = rem.match(/^([\w-]+)\s*(?=:)/);
+    if (propM && propM.index === 0) {
+      parts.push(span(propM[0], "property"));
+      rem = rem.substring(propM[0].length);
+      continue;
+    }
+
+    // Keywords / pseudo-classes
+    const kwM = rem.match(/^(important|inherit|initial|unset|none|auto|flex|grid|block|inline|absolute|relative|fixed|sticky)\b/);
+    if (kwM && kwM.index === 0) {
+      parts.push(span(kwM[0], "keyword"));
+      rem = rem.substring(kwM[0].length);
+      continue;
+    }
+
+    // Booleans
+    const boolM = rem.match(/^(true|false)\b/);
+    if (boolM && boolM.index === 0) {
+      parts.push(span(boolM[0], "boolean"));
+      rem = rem.substring(boolM[0].length);
+      continue;
+    }
+
+    // Operators / punctuation
+    const opM = rem.match(/^([{}:;,>+~[\]()])/);
+    if (opM && opM.index === 0) {
+      parts.push(span(opM[0], "operator"));
+      rem = rem.substring(opM[0].length);
+      continue;
+    }
+
+    // Identifiers (selectors, class names, etc.)
+    const idM = rem.match(/^(.[\w-]*)/);
+    if (idM && idM.index === 0) {
+      parts.push(<span key={`id${parts.length}`} style={{ color: C.text }}>{esc(idM[0])}</span>);
+      rem = rem.substring(idM[0].length);
+      continue;
+    }
+
+    parts.push(<span key={`css${parts.length}`}>{esc(rem[0])}</span>);
+    rem = rem.substring(1);
+  }
+
+  return parts;
+}
+
+function highlightLua(
+  line: string,
+  inBlockComment: boolean,
+  inLongString: boolean
+): { parts: React.ReactNode[]; inBlock: boolean; inLong: boolean } {
+  const parts: React.ReactNode[] = [];
+  let rem = line;
+
+  if (inBlockComment) {
+    const endIdx = rem.indexOf("]]");
+    if (endIdx >= 0) {
+      parts.push(span(rem.substring(0, endIdx + 2), "comment"));
+      rem = rem.substring(endIdx + 2);
+      inBlockComment = false;
+    } else {
+      parts.push(span(line, "comment"));
+      return { parts, inBlock: true, inLong: false };
+    }
+  }
+
+  if (inLongString) {
+    const endIdx = rem.indexOf("]]");
+    if (endIdx >= 0) {
+      parts.push(span(rem.substring(0, endIdx + 2), "string"));
+      rem = rem.substring(endIdx + 2);
+      inLongString = false;
+    } else {
+      parts.push(span(line, "string"));
+      return { parts, inBlock: false, inLong: true };
+    }
+  }
+
+  while (rem.length > 0) {
+    // Block comment
+    if (rem.startsWith("--[[")) {
+      const endIdx = rem.indexOf("]]", 4);
+      if (endIdx >= 0) {
+        parts.push(span(rem.substring(0, endIdx + 2), "comment"));
+        rem = rem.substring(endIdx + 2);
+      } else {
+        parts.push(span(rem, "comment"));
+        rem = "";
+        inBlockComment = true;
+      }
+      continue;
+    }
+
+    // Line comment
+    if (rem.startsWith("--")) {
+      parts.push(span(rem, "comment"));
+      break;
+    }
+
+    // Long string [[ ]]
+    if (rem.startsWith("[[")) {
+      const endIdx = rem.indexOf("]]", 2);
+      if (endIdx >= 0) {
+        parts.push(span(rem.substring(0, endIdx + 2), "string"));
+        rem = rem.substring(endIdx + 2);
+      } else {
+        parts.push(span(rem, "string"));
+        rem = "";
+        inLongString = true;
+      }
+      continue;
+    }
+
+    // Strings
+    const strM = rem.match(/^(["'])(.*?)(\1)/);
+    if (strM && strM.index === 0) {
+      parts.push(span(strM[0], "string"));
+      rem = rem.substring(strM[0].length);
+      continue;
+    }
+
+    // Numbers
+    const numM = rem.match(/^(-?\d+\.?\d*)\b/);
+    if (numM && numM.index === 0) {
+      parts.push(span(numM[0], "number"));
+      rem = rem.substring(numM[0].length);
+      continue;
+    }
+
+    // Booleans / nil
+    const boolM = rem.match(/^(true|false|nil)\b/);
+    if (boolM && boolM.index === 0) {
+      parts.push(span(boolM[0], "boolean"));
+      rem = rem.substring(boolM[0].length);
+      continue;
+    }
+
+    // Keywords
+    const kwM = rem.match(/^(local|function|end|if|then|else|elseif|for|while|do|return|require|and|or|not|repeat|until|goto)\b/);
+    if (kwM && kwM.index === 0) {
+      parts.push(span(kwM[0], "keyword"));
+      rem = rem.substring(kwM[0].length);
+      continue;
+    }
+
+    // Function call: name(
+    const fnM = rem.match(/^([\w.]+)\s*(\()/);
+    if (fnM && fnM.index === 0) {
+      parts.push(span(fnM[1], "function"));
+      parts.push(span(fnM[2], "operator"));
+      rem = rem.substring(fnM[0].length);
+      continue;
+    }
+
+    // Variables
+    const varM = rem.match(/^([\w]+)/);
+    if (varM && varM.index === 0) {
+      parts.push(<span key={`lv${parts.length}`} style={{ color: C.text }}>{esc(varM[0])}</span>);
+      rem = rem.substring(varM[0].length);
+      continue;
+    }
+
+    // Operators
+    const opM = rem.match(/^([{}[\]();,.<>=+\-*/%^#])/);
+    if (opM && opM.index === 0) {
+      parts.push(span(opM[0], "operator"));
+      rem = rem.substring(opM[0].length);
+      continue;
+    }
+
+    parts.push(<span key={`lua${parts.length}`}>{esc(rem[0])}</span>);
+    rem = rem.substring(1);
+  }
+
+  return { parts, inBlock: inBlockComment, inLong: inLongString };
+}
+
+function highlightShell(line: string): React.ReactNode[] {
+  const parts: React.ReactNode[] = [];
+  let rem = line;
+
+  while (rem.length > 0) {
+    // Comment
+    if (rem.startsWith("#")) {
+      parts.push(span(rem, "comment"));
+      break;
+    }
+
+    // Double-quoted string with variable expansion
+    const dqM = rem.match(/^"((?:[^"\\$]|\\.)*)"/);
+    if (dqM && dqM.index === 0) {
+      parts.push(span(`"${dqM[1]}"`, "string"));
+      rem = rem.substring(dqM[0].length);
+      continue;
+    }
+
+    // Single-quoted string
+    const sqM = rem.match(/^'([^']*)'/);
+    if (sqM && sqM.index === 0) {
+      parts.push(span(sqM[0], "string"));
+      rem = rem.substring(sqM[0].length);
+      continue;
+    }
+
+    // Variables
+    const varM = rem.match(/^(\$[\w@?${}!]|(\$\{[^}]+\})|(\$[A-Za-z_][A-Za-z0-9_]*))/);
+    if (varM && varM.index === 0) {
+      parts.push(span(varM[0], "variable"));
+      rem = rem.substring(varM[0].length);
+      continue;
+    }
+
+    // Numbers
+    const numM = rem.match(/^(-?\d+\.?\d*)\b/);
+    if (numM && numM.index === 0) {
+      parts.push(span(numM[0], "number"));
+      rem = rem.substring(numM[0].length);
+      continue;
+    }
+
+    // Keywords
+    const kwM = rem.match(/^(if|then|else|elif|fi|for|while|do|done|case|esac|function|return|exit|export|source|local|readonly|declare|select|until|in|shift|trap|eval|exec)\b/);
+    if (kwM && kwM.index === 0) {
+      parts.push(span(kwM[0], "keyword"));
+      rem = rem.substring(kwM[0].length);
+      continue;
+    }
+
+    // Booleans
+    const boolM = rem.match(/^(true|false)\b/);
+    if (boolM && boolM.index === 0) {
+      parts.push(span(boolM[0], "boolean"));
+      rem = rem.substring(boolM[0].length);
+      continue;
+    }
+
+    // Operators
+    const opM = rem.match(/^([|&;><]+|[\[\](){}$`])/);
+    if (opM && opM.index === 0) {
+      parts.push(span(opM[0], "operator"));
+      rem = rem.substring(opM[0].length);
+      continue;
+    }
+
+    // Commands (first word on a line or after pipe/semicolon)
+    const cmdM = rem.match(/^([a-zA-Z_][\w-]*)/);
+    if (cmdM && cmdM.index === 0) {
+      parts.push(span(cmdM[0], "function"));
+      rem = rem.substring(cmdM[0].length);
+      continue;
+    }
+
+    parts.push(<span key={`sh${parts.length}`}>{esc(rem[0])}</span>);
+    rem = rem.substring(1);
+  }
+
+  return parts;
+}
+
+function highlightFish(line: string): React.ReactNode[] {
+  const parts: React.ReactNode[] = [];
+  let rem = line;
+
+  while (rem.length > 0) {
+    // Comment
+    if (rem.startsWith("#")) {
+      parts.push(span(rem, "comment"));
+      break;
+    }
+
+    // Double-quoted string
+    const dqM = rem.match(/^"((?:[^"\\]|\\.)*)"/);
+    if (dqM && dqM.index === 0) {
+      parts.push(span(`"${dqM[1]}"`, "string"));
+      rem = rem.substring(dqM[0].length);
+      continue;
+    }
+
+    // Single-quoted string
+    const sqM = rem.match(/^'([^']*)'/);
+    if (sqM && sqM.index === 0) {
+      parts.push(span(sqM[0], "string"));
+      rem = rem.substring(sqM[0].length);
+      continue;
+    }
+
+    // Variables
+    const varM = rem.match(/^(\$(?:\{[^}]+\}|[A-Za-z0-9_]+))/);
+    if (varM && varM.index === 0) {
+      parts.push(span(varM[0], "variable"));
+      rem = rem.substring(varM[0].length);
+      continue;
+    }
+
+    // Numbers
+    const numM = rem.match(/^(-?\d+\.?\d*)\b/);
+    if (numM && numM.index === 0) {
+      parts.push(span(numM[0], "number"));
+      rem = rem.substring(numM[0].length);
+      continue;
+    }
+
+    // Keywords
+    const kwM = rem.match(/^(if|else|end|for|while|function|return|set|export|source|alias|in|break|continue|switch|case|begin|and|or|not|do|done)\b/);
+    if (kwM && kwM.index === 0) {
+      parts.push(span(kwM[0], "keyword"));
+      rem = rem.substring(kwM[0].length);
+      continue;
+    }
+
+    // Booleans
+    const boolM = rem.match(/^(true|false|yes|no|0|1)\b/);
+    if (boolM && boolM.index === 0) {
+      parts.push(span(boolM[0], "boolean"));
+      rem = rem.substring(boolM[0].length);
+      continue;
+    }
+
+    // Operators
+    const opM = rem.match(/^([|&;><\[\](){}])/);
+    if (opM && opM.index === 0) {
+      parts.push(span(opM[0], "operator"));
+      rem = rem.substring(opM[0].length);
+      continue;
+    }
+
+    // Commands
+    const cmdM = rem.match(/^([a-zA-Z_][\w-]*)/);
+    if (cmdM && cmdM.index === 0) {
+      parts.push(span(cmdM[0], "function"));
+      rem = rem.substring(cmdM[0].length);
+      continue;
+    }
+
+    parts.push(<span key={`fish${parts.length}`}>{esc(rem[0])}</span>);
+    rem = rem.substring(1);
+  }
+
+  return parts;
+}
+
+function highlightINI(line: string): React.ReactNode[] {
+  const parts: React.ReactNode[] = [];
+  const trimmed = line.trimStart();
+  const indent = line.length - trimmed.length;
+
+  if (indent > 0) parts.push(<span key="ind">{esc(line.substring(0, indent))}</span>);
+
+  // Comment
+  if (trimmed.startsWith("#") || trimmed.startsWith(";")) {
+    parts.push(span(line.substring(indent), "comment"));
+    return parts;
+  }
+
+  // Section header
+  const secM = trimmed.match(/^(\[[\w.-]+\])/);
+  if (secM && secM.index === 0) {
+    parts.push(span(secM[0], "section"));
+    const rest = trimmed.substring(secM[0].length);
+    if (rest.trimStart().startsWith("#") || rest.trimStart().startsWith(";")) {
+      const spaceIdx = rest.search(/[#;]/);
+      parts.push(<span key="sp">{esc(rest.substring(0, spaceIdx))}</span>);
+      parts.push(span(rest.substring(spaceIdx), "comment"));
+    } else if (rest.trim().length > 0) {
+      parts.push(<span key="trailing">{esc(rest)}</span>);
+    }
+    return parts;
+  }
+
+  // Key = value
+  const kvM = trimmed.match(/^([\w.-]+)\s*([=:\s])/);
+  if (kvM && kvM.index === 0) {
+    parts.push(span(kvM[1], "property"));
+    parts.push(span(kvM[2], "operator"));
+    const val = trimmed.substring(kvM[0].length);
+
+    // Comment
+    const commentIdx = findIniComment(val);
+    if (commentIdx >= 0) {
+      const valPart = val.substring(0, commentIdx);
+      const commentPart = val.substring(commentIdx);
+      if (valPart.trim().length > 0) parts.push(...highlightIniValue(valPart));
+      parts.push(span(commentPart, "comment"));
+    } else {
+      parts.push(...highlightIniValue(val));
+    }
+    return parts;
+  }
+
+  parts.push(<span key="raw">{esc(trimmed)}</span>);
+  return parts;
+}
+
+function findIniComment(text: string): number {
+  for (let i = 0; i < text.length; i++) {
+    if (text[i] === "#" || text[i] === ";") return i;
+  }
+  return -1;
+}
+
+function highlightIniValue(text: string): React.ReactNode[] {
+  const parts: React.ReactNode[] = [];
+  let rem = text;
+
+  while (rem.length > 0) {
+    const strM = rem.match(/^(["'])(.*?)(\1)/);
+    if (strM && strM.index === 0) {
+      parts.push(span(strM[0], "string"));
+      rem = rem.substring(strM[0].length);
+      continue;
+    }
+
+    const colM = rem.match(/^#[0-9a-fA-F]{3,8}\b/);
+    if (colM && colM.index === 0) {
+      parts.push(span(colM[0], "color"));
+      rem = rem.substring(colM[0].length);
+      continue;
+    }
+
+    const numM = rem.match(/^(-?\d+\.?\d*)\b/);
+    if (numM && numM.index === 0) {
+      parts.push(span(numM[0], "number"));
+      rem = rem.substring(numM[0].length);
+      continue;
+    }
+
+    const boolM = rem.match(/^(true|false|yes|no|on|off)\b/i);
+    if (boolM && boolM.index === 0) {
+      parts.push(span(boolM[0], "boolean"));
+      rem = rem.substring(boolM[0].length);
+      continue;
+    }
+
+    parts.push(<span key={`iv${parts.length}`}>{esc(rem[0])}</span>);
+    rem = rem.substring(1);
+  }
+
+  return parts;
+}
+
+function highlightKeyValue(line: string): React.ReactNode[] {
+  const parts: React.ReactNode[] = [];
+  const trimmed = line.trimStart();
+  const indent = line.length - trimmed.length;
+
+  if (indent > 0) parts.push(<span key="ind">{esc(line.substring(0, indent))}</span>);
+
+  // Comment
+  if (trimmed.startsWith("#")) {
+    parts.push(span(line.substring(indent), "comment"));
+    return parts;
+  }
+
+  // Key = value or Key: value
+  const kvM = trimmed.match(/^([\w./-]+)\s*([=:])\s*/);
+  if (kvM && kvM.index === 0) {
+    parts.push(span(kvM[1], "property"));
+    parts.push(span(kvM[2], "operator"));
+    const val = trimmed.substring(kvM[0].length);
+    parts.push(...highlightIniValue(val));
+    return parts;
+  }
+
+  // Section-like headers
+  const secM = trimmed.match(/^(\[[\w.-]+\])/);
+  if (secM && secM.index === 0) {
+    parts.push(span(secM[0], "section"));
+    const rest = trimmed.substring(secM[0].length);
+    if (rest.trim().length > 0) parts.push(<span key="tr">{esc(rest)}</span>);
+    return parts;
+  }
+
+  parts.push(<span key="raw">{esc(trimmed)}</span>);
+  return parts;
+}
+
+function highlightEww(line: string): React.ReactNode[] {
+  const parts: React.ReactNode[] = [];
+  const trimmed = line.trimStart();
+  const indent = line.length - trimmed.length;
+
+  if (indent > 0) parts.push(<span key="ind">{esc(line.substring(0, indent))}</span>);
+
+  // Comment
+  if (trimmed.startsWith(";")) {
+    parts.push(span(line.substring(indent), "comment"));
+    return parts;
+  }
+
+  // Keywords
+  const kwM = trimmed.match(/^(defwindow|defwidget|defvar|deflisten|include)\b/);
+  if (kwM && kwM.index === 0) {
+    parts.push(span(kwM[0], "keyword"));
+    const rest = trimmed.substring(kwM[0].length);
+    parts.push(<span key="sp">{esc(rest.substring(0, Math.min(rest.length, 1)))}</span>);
+
+    // Widget name
+    const nameM = rest.trimStart().match(/^([\w-]+)/);
+    if (nameM) {
+      parts.push(span(nameM[1], "function"));
+      const after = rest.substring(rest.indexOf(nameM[1]) + nameM[1].length);
+      parts.push(...highlightEwwRest(after));
+      return parts;
+    }
+    return parts;
+  }
+
+  // Built-in widgets
+  const bldM = trimmed.match(/^(box|label|button|input|image|scale|eventbox|overlay|scroll|centerbox|expander|tooltip|window|fixed)\b/);
+  if (bldM && bldM.index === 0) {
+    parts.push(span(bldM[0], "section"));
+    const rest = trimmed.substring(bldM[0].length);
+    parts.push(...highlightEwwRest(rest));
+    return parts;
+  }
+
+  // Properties
+  const propM = trimmed.match(/^([\w-]+)\s*(:)/);
+  if (propM && propM.index === 0) {
+    parts.push(span(propM[1], "property"));
+    parts.push(span(propM[2], "operator"));
+    const val = trimmed.substring(propM[0].length);
+    parts.push(...highlightIniValue(val));
+    return parts;
+  }
+
+  // Keywords: true/false
+  const boolM = trimmed.match(/^(true|false)\b/);
+  if (boolM && boolM.index === 0) {
+    parts.push(span(boolM[0], "boolean"));
+    return parts;
+  }
+
+  parts.push(<span key="raw">{esc(trimmed)}</span>);
+  return parts;
+}
+
+function highlightEwwRest(text: string): React.ReactNode[] {
+  const parts: React.ReactNode[] = [];
+  let rem = text;
+
+  while (rem.length > 0) {
+    if (rem.startsWith(";")) {
+      parts.push(span(rem, "comment"));
+      break;
+    }
+
+    const propM = rem.match(/^([\w-]+)\s*(:)/);
+    if (propM && propM.index === 0) {
+      parts.push(span(propM[1], "property"));
+      parts.push(span(propM[2], "operator"));
+      const rest = rem.substring(propM[0].length);
+      const nextProp = rest.search(/[\s]+[\w-]+\s*:/);
+      if (nextProp >= 0) {
+        parts.push(...highlightIniValue(rest.substring(0, nextProp)));
+        rem = rest.substring(nextProp);
+      } else {
+        parts.push(...highlightIniValue(rest));
+        break;
+      }
+      continue;
+    }
+
+    parts.push(<span key={`ew${parts.length}`}>{esc(rem[0])}</span>);
+    rem = rem.substring(1);
+  }
+
+  return parts;
+}
+
+function highlightRofi(line: string): React.ReactNode[] {
+  const parts: React.ReactNode[] = [];
+  const trimmed = line.trimStart();
+  const indent = line.length - trimmed.length;
+
+  if (indent > 0) parts.push(<span key="ind">{esc(line.substring(0, indent))}</span>);
+
+  // Comment
+  if (trimmed.startsWith("//")) {
+    parts.push(span(line.substring(indent), "comment"));
+    return parts;
+  }
+
+  // Section header: * { ... } or window { }
+  const secM = trimmed.match(/^([\w.*]+)\s*\{/);
+  if (secM && secM.index === 0) {
+    parts.push(span(secM[1], "section"));
+    parts.push(span(" {", "operator"));
+    return parts;
+  }
+
+  // Closing brace
+  if (trimmed.startsWith("}")) {
+    parts.push(span("}", "operator"));
+    return parts;
+  }
+
+  // Property: value
+  const kvM = trimmed.match(/^([\w-]+)\s*:\s*/);
+  if (kvM && kvM.index === 0) {
+    parts.push(span(kvM[1], "property"));
+    parts.push(span(":", "operator"));
+    const val = trimmed.substring(kvM[0].length);
+
+    // Colors
+    const colM = val.match(/^(#[0-9a-fA-F]{3,8})/);
+    if (colM) {
+      parts.push(span(colM[0], "color"));
+      const rest = val.substring(colM[0].length);
+      if (rest.trim().length > 0) parts.push(<span key="rv">{esc(rest)}</span>);
+      return parts;
+    }
+
+    parts.push(...highlightIniValue(val));
+    return parts;
+  }
+
+  // Keywords
+  const kwM = trimmed.match(/^(configuration|theme|import|window)\b/);
+  if (kwM && kwM.index === 0) {
+    parts.push(span(kwM[0], "keyword"));
+    return parts;
+  }
+
+  parts.push(<span key="raw">{esc(trimmed)}</span>);
+  return parts;
+}
+
+function highlightTmux(line: string): React.ReactNode[] {
+  const parts: React.ReactNode[] = [];
+  const trimmed = line.trimStart();
+  const indent = line.length - trimmed.length;
+
+  if (indent > 0) parts.push(<span key="ind">{esc(line.substring(0, indent))}</span>);
+
+  // Comment
+  if (trimmed.startsWith("#")) {
+    parts.push(span(line.substring(indent), "comment"));
+    return parts;
+  }
+
+  // set-option / set / unbind / bind
+  const kwM = trimmed.match(/^(set|set-option|set-window-option|unbind|bind|bind-key|unbind-key|source|run|if|new-session|new-window|split-window|select-window|set-hook|display-message)\b/);
+  if (kwM && kwM.index === 0) {
+    parts.push(span(kwM[0], "keyword"));
+    const rest = trimmed.substring(kwM[0].length);
+    parts.push(...highlightIniValue(rest));
+    return parts;
+  }
+
+  parts.push(<span key="raw">{esc(trimmed)}</span>);
+  return parts;
+}
+
+function highlightDunst(line: string): React.ReactNode[] {
+  const parts: React.ReactNode[] = [];
+  const trimmed = line.trimStart();
+  const indent = line.length - trimmed.length;
+
+  if (indent > 0) parts.push(<span key="ind">{esc(line.substring(0, indent))}</span>);
+
+  // Comment
+  if (trimmed.startsWith("#") || trimmed.startsWith(";")) {
+    parts.push(span(line.substring(indent), "comment"));
+    return parts;
+  }
+
+  // Section header
+  const secM = trimmed.match(/^(\[[\w.]+\])/);
+  if (secM && secM.index === 0) {
+    parts.push(span(secM[0], "section"));
+    const rest = trimmed.substring(secM[0].length);
+    if (rest.trim().length > 0) parts.push(<span key="tr">{esc(rest)}</span>);
+    return parts;
+  }
+
+  // Key = value
+  const kvM = trimmed.match(/^([\w_]+)\s*=\s*/);
+  if (kvM && kvM.index === 0) {
+    parts.push(span(kvM[1], "property"));
+    parts.push(span("=", "operator"));
+    const val = trimmed.substring(kvM[0].length);
+
+    // Colors
+    const colM = val.match(/^(#[0-9a-fA-F]{3,8})/);
+    if (colM) {
+      parts.push(span(colM[0], "color"));
+      const rest = val.substring(colM[0].length);
+      if (rest.trim().length > 0) parts.push(<span key="dr">{esc(rest)}</span>);
+      return parts;
+    }
+
+    parts.push(...highlightIniValue(val));
+    return parts;
+  }
+
+  parts.push(<span key="raw">{esc(trimmed)}</span>);
   return parts;
 }
 
@@ -244,7 +1402,8 @@ export function CodeEditor() {
 
   const lines = activeTab.content.split("\n");
   const lineCount = lines.length;
-  const highlighted = highlightSyntax(activeTab.content, activeTab.name);
+  const language = detectLanguage(activeTab.name, activeTab.path);
+  const highlighted = highlightSyntax(activeTab.content, language);
   const lineNumWidth = Math.max(40, String(lineCount).length * 9 + 24);
 
   return (
