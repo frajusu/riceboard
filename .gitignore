@@ -23,6 +23,9 @@ desktop.ini
 .env
 .env.local
 
+# Test dotfiles (downloaded repos for validator testing)
+test-dotfiles/
+
 # Logs
 *.log
 npm-debug.log*

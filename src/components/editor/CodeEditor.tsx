@@ -193,7 +193,7 @@ export function CodeEditor() {
     if (!activeTab) return;
     if (errorTimerRef.current) clearTimeout(errorTimerRef.current);
     errorTimerRef.current = setTimeout(() => {
-      const result = validateConfig(activeTab.name, activeTab.content);
+      const result = validateConfig(activeTab.name, activeTab.content, activeTab.path);
       setErrors(result);
     }, 300);
     return () => { if (errorTimerRef.current) clearTimeout(errorTimerRef.current); };
