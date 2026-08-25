@@ -785,3 +785,106 @@ pub fn is_live_running(plugin: String) -> bool {
         Err(_) => false,
     }
 }
+
+fn riceboard_config_dir() -> PathBuf {
+    let base = if cfg!(target_os = "linux") {
+        std::env::var("XDG_CONFIG_HOME")
+            .map(PathBuf::from)
+            .unwrap_or_else(|_| {
+                let home = std::env::var("HOME").unwrap_or_else(|_| ".".to_string());
+                PathBuf::from(home).join(".config")
+            })
+    } else if cfg!(target_os = "macos") {
+        let home = std::env::var("HOME").unwrap_or_else(|_| ".".to_string());
+        PathBuf::from(home).join("Library/Application Support")
+    } else {
+        let appdata = std::env::var("APPDATA").unwrap_or_else(|_| ".".to_string());
+        PathBuf::from(appdata)
+    };
+    base.join("riceboard")
+}
+
+const DEFAULT_THEME: &str = r##"# Riceboard Theme Configuration
+# Edit these values to customize the app appearance.
+# Colors use CSS format: hex (#rrggbb), hsl (h s% l%), or rgb (r g b).
+# After editing, restart the app or click "Reload Theme" in Settings.
+
+[colors]
+background = "#ffffff"
+foreground = "#0a0a0a"
+card = "#f8f9fa"
+cardForeground = "#0a0a0a"
+popover = "#ffffff"
+popoverForeground = "#0a0a0a"
+primary = "#7c3aed"
+primaryForeground = "#ffffff"
+secondary = "#f3f4f6"
+secondaryForeground = "#1f2937"
+muted = "#f3f4f6"
+mutedForeground = "#6b7280"
+accent = "#f3f4f6"
+accentForeground = "#111827"
+destructive = "#ef4444"
+destructiveForeground = "#ffffff"
+border = "#e5e7eb"
+input = "#e5e7eb"
+ring = "#7c3aed"
+sidebarBackground = "#f8f9fa"
+sidebarForeground = "#374151"
+sidebarAccent = "#f3f4f6"
+
+[colors.dark]
+background = "#0f0f17"
+foreground = "#cdd6f4"
+card = "#181825"
+cardForeground = "#cdd6f4"
+popover = "#1e1e2e"
+popoverForeground = "#cdd6f4"
+primary = "#cba6f7"
+primaryForeground = "#1e1e2e"
+secondary = "#313244"
+secondaryForeground = "#cdd6f4"
+muted = "#313244"
+mutedForeground = "#a6adc8"
+accent = "#313244"
+accentForeground = "#cdd6f4"
+destructive = "#f38ba8"
+destructiveForeground = "#1e1e2e"
+border = "#313244"
+input = "#313244"
+ring = "#cba6f7"
+sidebarBackground = "#11111b"
+sidebarForeground = "#cdd6f4"
+sidebarAccent = "#1e1e2e"
+
+[fonts]
+ui = "Inter, system-ui, sans-serif"
+mono = "JetBrains Mono, Fira Code, Cascadia Code, monospace"
+editor = "JetBrains Mono, Fira Code, Cascadia Code, Consolas, Segoe UI Emoji, monospace"
+simulation = "monospace"
+"##;
+
+#[tauri::command]
+pub fn read_theme_config() -> Result<String, String> {
+    let dir = riceboard_config_dir();
+    let path = dir.join("theme.toml");
+    if path.exists() {
+        fs::read_to_string(&path).map_err(|e| format!("Failed to read theme: {}", e))
+    } else {
+        Ok(String::new())
+    }
+}
+
+#[tauri::command]
+pub fn write_theme_config(content: String) -> Result<(), String> {
+    let dir = riceboard_config_dir();
+    fs::create_dir_all(&dir).map_err(|e| format!("Failed to create config dir: {}", e))?;
+    let path = dir.join("theme.toml");
+    fs::write(&path, content).map_err(|e| format!("Failed to write theme: {}", e))
+}
+
+#[tauri::command]
+pub fn get_theme_config_path() -> Result<String, String> {
+    let dir = riceboard_config_dir();
+    Ok(dir.join("theme.toml").to_string_lossy().to_string())
+}

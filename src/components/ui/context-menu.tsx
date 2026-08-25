@@ -93,11 +93,11 @@ export function ContextMenu({ items, x, y, onClose, savedRange, focusEl }: Conte
               }}
               onClick={() => {
                 const action = item.onClick;
+                // Restore selection and execute action BEFORE closing menu
+                // (closing menu unmounts component and can lose selection)
+                restoreSelection();
+                action?.();
                 onClose();
-                setTimeout(() => {
-                  restoreSelection();
-                  action?.();
-                }, 10);
               }}
               className={`w-full flex items-center gap-2.5 px-3 py-1.5 text-sm transition-colors duration-75
                 ${item.danger

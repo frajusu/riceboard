@@ -9,6 +9,7 @@ import { PreviewPanel } from "@/components/preview/PreviewPanel";
 import { initPlugins } from "@/lib/plugins";
 import { useAppStore, type FileNode } from "@/stores/app-store";
 import { useThemeStore } from "@/stores/theme-store";
+import { useThemeConfigStore, DEFAULT_THEME_TOML } from "@/stores/theme-config-store";
 import { t } from "@/lib/i18n";
 import { Button } from "@/components/ui/button";
 import { invoke } from "@tauri-apps/api/core";
@@ -246,6 +247,9 @@ function SettingsDialog() {
   const setBackgroundPattern = useAppStore((s) => s.setBackgroundPattern);
   const backgroundOpacity = useAppStore((s) => s.backgroundOpacity);
   const setBackgroundOpacity = useAppStore((s) => s.setBackgroundOpacity);
+  const themeConfigStore = useThemeConfigStore();
+  const [themeToml, setThemeToml] = useState(themeConfigStore.rawToml || DEFAULT_THEME_TOML);
+  const [themeSaved, setThemeSaved] = useState(false);
 
   const simulationPlugins = [
     "hyprland", "waybar", "kitty", "rofi", "neovim", "mako", "btop",
@@ -393,7 +397,7 @@ function SettingsDialog() {
             <div>
               <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">Background</h3>
               <div className="grid grid-cols-3 gap-2 mb-4">
-                {["none", "hexagons", "waves", "circuit", "gradient", "particles"].map((p) => (
+                {["none", "glyph", "hexfloat", "blaze"].map((p) => (
                   <button
                     key={p}
                     onClick={() => setBackgroundPattern(p)}
@@ -420,6 +424,53 @@ function SettingsDialog() {
                   onChange={(e) => setBackgroundOpacity(parseInt(e.target.value))}
                   className="w-full h-1 accent-violet-500 cursor-pointer"
                 />
+              </div>
+            </div>
+
+            {/* Theme Config */}
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Theme Config</h3>
+                {themeConfigStore.configPath && (
+                  <span className="text-[9px] text-muted-foreground/50 font-mono truncate max-w-[280px]">{themeConfigStore.configPath}</span>
+                )}
+              </div>
+              <p className="text-[10px] text-muted-foreground mb-3">
+                Customize colors and fonts. No file exists yet — edit and click "Save & Apply" to create one.
+                Existing CSS defaults are untouched until you save.
+              </p>
+              <textarea
+                value={themeToml}
+                onChange={(e) => { setThemeToml(e.target.value); setThemeSaved(false); }}
+                className="w-full h-48 rounded-lg border bg-card p-3 font-mono text-[11px] text-foreground resize-none outline-none focus:border-violet-500/50"
+                spellCheck={false}
+              />
+              <div className="flex items-center gap-2 mt-2">
+                <button
+                  onClick={async () => {
+                    await themeConfigStore.saveConfig(themeToml);
+                    setThemeSaved(true);
+                    setTimeout(() => setThemeSaved(false), 2000);
+                  }}
+                  className="px-3 py-1.5 rounded-lg bg-violet-500/15 border border-violet-500/30 text-violet-400 text-xs font-medium hover:bg-violet-500/25 transition-colors"
+                >
+                  {themeSaved ? "Saved!" : "Save & Apply"}
+                </button>
+                <button
+                  onClick={async () => {
+                    await themeConfigStore.loadConfig();
+                    setThemeToml(themeConfigStore.rawToml || DEFAULT_THEME_TOML);
+                  }}
+                  className="px-3 py-1.5 rounded-lg border border-border text-xs hover:bg-accent/50 transition-colors"
+                >
+                  Reload from disk
+                </button>
+                <button
+                  onClick={() => setThemeToml(DEFAULT_THEME_TOML)}
+                  className="px-3 py-1.5 rounded-lg border border-border text-xs hover:bg-accent/50 transition-colors"
+                >
+                  Reset defaults
+                </button>
               </div>
             </div>
           </div>
@@ -587,7 +638,17 @@ export default function App() {
     didInit.current = true;
     initPlugins();
     restoreSession();
+    useThemeConfigStore.getState().loadConfig().then(() => {
+      const cfg = useThemeConfigStore.getState();
+      if (cfg.config) cfg.applyTheme();
+    });
   }, []);
+
+  const resolvedTheme = useThemeStore((s) => s.resolvedTheme);
+  useEffect(() => {
+    const cfg = useThemeConfigStore.getState();
+    if (cfg.loaded && cfg.config) cfg.applyTheme();
+  }, [resolvedTheme]);
 
   return (
     <ErrorBoundary>

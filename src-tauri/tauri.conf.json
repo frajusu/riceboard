@@ -1,7 +1,7 @@
 {
   "$schema": "https://raw.githubusercontent.com/nicegram/nicegram-tauri/refs/heads/main/src-tauri/schemas/desktop-schema.json",
   "productName": "Riceboard",
-  "version": "0.4.13",
+  "version": "0.4.98",
   "identifier": "com.riceboard.app",
   "build": {
     "beforeDevCommand": "npm run dev",
