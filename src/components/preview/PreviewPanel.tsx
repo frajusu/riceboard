@@ -805,7 +805,7 @@ export function PreviewPanel() {
   if (!previewOpen) {
     return (
       <div className="relative flex flex-col border-l shrink-0" style={{ width: 32 }}>
-        <div className="flex items-center justify-center h-9 border-b shrink-0">
+        <div className="flex items-center justify-center border-b shrink-0" style={{ minHeight: 45 }}>
           <Tooltip><TooltipTrigger asChild>
             <Button variant="ghost" size="icon" className="h-7 w-7" onClick={togglePreview}><Eye className="h-3.5 w-3.5 text-muted-foreground" /></Button>
           </TooltipTrigger><TooltipContent>Mostrar preview</TooltipContent></Tooltip>

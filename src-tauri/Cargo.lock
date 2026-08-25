@@ -2529,7 +2529,7 @@ dependencies = [
 
 [[package]]
 name = "riceboard"
-version = "0.4.98"
+version = "0.5.0"
 dependencies = [
  "lazy_static",
  "serde",

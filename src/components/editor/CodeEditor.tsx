@@ -1424,10 +1424,35 @@ export function CodeEditor() {
     const sel = window.getSelection();
     if (!sel || sel.rangeCount === 0) return 0;
     const range = sel.getRangeAt(0);
-    const preRange = document.createRange();
-    preRange.selectNodeContents(el);
-    preRange.setEnd(range.startContainer, range.startOffset);
-    return preRange.toString().length;
+    let offset = 0;
+    const walk = (node: Node): boolean => {
+      if (node === range.startContainer) {
+        if (node.nodeType === Node.TEXT_NODE) {
+          offset += range.startOffset;
+        }
+        return true;
+      }
+      if (node.nodeType === Node.TEXT_NODE) {
+        offset += (node.textContent || "").length;
+      } else if (node.nodeType === Node.ELEMENT_NODE) {
+        const tag = (node as HTMLElement).tagName;
+        if (tag === "BR") {
+          offset += 1;
+        } else {
+          for (const child of Array.from(node.childNodes)) {
+            if (walk(child)) return true;
+          }
+          if (tag === "DIV" || tag === "P") {
+            offset += 1;
+          }
+        }
+      }
+      return false;
+    };
+    for (const child of Array.from(el.childNodes)) {
+      if (walk(child)) break;
+    }
+    return offset;
   }, []);
 
   const setCursorOffset = useCallback((el: HTMLElement, offset: number) => {
@@ -1472,6 +1497,7 @@ export function CodeEditor() {
     const el = preRef.current;
     if (!el || !activeTab) return;
     if (syncingRef.current || userEditRef.current) return;
+    if (document.activeElement === el) return;
     const currentText = getTextFromPre(el);
     if (currentText !== activeTab.content) {
       syncingRef.current = true;

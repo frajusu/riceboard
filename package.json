@@ -1,6 +1,6 @@
 {
   "name": "riceboard",
-  "version": "0.4.98",
+  "version": "0.5.0",
   "private": true,
   "type": "module",
   "scripts": {

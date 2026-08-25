@@ -192,7 +192,7 @@ export function Sidebar() {
         transition={{ duration: 0.2, ease: "easeInOut" }}
         className="sidebar h-full border-r overflow-hidden flex flex-col"
       >
-        <div className="flex items-center gap-0.5 px-2 py-2 border-b" style={{ minHeight: 44 }}>
+        <div className="flex items-center gap-0.5 px-2 py-2 border-b" style={{ minHeight: 45 }}>
           {sidebarSections.map((section) => {
             const Icon = section.icon;
             return (
